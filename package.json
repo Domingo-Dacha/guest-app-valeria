@@ -18,6 +18,7 @@
     "format:check": "prettier --check .",
     "db:migrate": "tsx scripts/migrate.ts",
     "db:reset-demo": "tsx scripts/reset-demo-data.ts",
+    "data:import-activities": "python scripts/import-activities.py",
     "secrets:generate": "node scripts/generate-app-secrets.mjs",
     "verify": "npm run lint && npm run typecheck && npm run test && npm run build"
   },

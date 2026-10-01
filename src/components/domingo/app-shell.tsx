@@ -11,8 +11,8 @@ export function AppShell({ children }: { children: ReactNode }) {
           <DomingoLogo />
         </Link>
         <nav aria-label="Основная навигация">
-          <Link href="/">Демо</Link>
-          <Link href="/components">Компоненты</Link>
+          <Link href="/">Главная</Link>
+          <Link href="/leisure">Чем заняться</Link>
         </nav>
       </header>
       <main>{children}</main>
