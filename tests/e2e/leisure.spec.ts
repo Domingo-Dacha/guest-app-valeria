@@ -71,6 +71,35 @@ test("limits moods to three and shows both time boundaries", async ({
   await expect(page.getByRole("button", { name: "На природе" })).toBeDisabled();
   await expect(page.getByLabel("С какого времени начать")).toBeVisible();
   await expect(page.getByLabel("К какому времени закончить")).toBeVisible();
+
+  if ((page.viewportSize()?.width ?? 1000) <= 760) {
+    const start = await page
+      .getByLabel("С какого времени начать")
+      .boundingBox();
+    const end = await page
+      .getByLabel("К какому времени закончить")
+      .boundingBox();
+    expect(start).not.toBeNull();
+    expect(end).not.toBeNull();
+    expect(end!.y).toBeGreaterThanOrEqual(start!.y + start!.height);
+  }
+});
+
+test("always builds a complete rainy-day plan with teenagers", async ({
+  page,
+}) => {
+  await page.goto("/leisure");
+  await page.getByRole("button", { name: "Осень" }).click();
+  await page.getByRole("button", { name: "Дождь" }).click();
+  await page.getByRole("button", { name: "С подростками" }).click();
+  await page.getByLabel("К какому времени закончить").fill("20:00");
+  await page.getByRole("button", { name: /Собрать мой день/ }).click();
+
+  expect(await page.locator(".timeline > li").count()).toBeGreaterThan(1);
+  await expect(
+    page.getByText(/Подходящего варианта|Попробуем немного иначе/),
+  ).toHaveCount(0);
+  await expect(page.locator(".timeline")).toContainText("20:00");
 });
 
 test("shows the supplied map in each matching route card and dialog", async ({

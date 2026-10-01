@@ -11,6 +11,7 @@ export const ACTIVITY_PATCHES: Record<string, ActivityPatch> = {
   "dd-012": { seasons: ["summer"] },
   "dd-015": { status: "disabled", isSelectable: false },
   "dd-016": { status: "disabled", isSelectable: false },
+  "dd-018": { status: "disabled", isSelectable: false },
   "a-001": {
     title: "Тропа здоровья — 1-й лайт уровень",
     description: "Лёгкий кольцевой маршрут для активной прогулки на 1–2 часа",
@@ -26,40 +27,73 @@ export const ACTIVITY_PATCHES: Record<string, ActivityPatch> = {
   },
   "a-003": { imageAsset: "/activity-maps/bike-route.webp" },
   "g-001": {
+    title: "Ресторан Kitchen Market",
     sourceUrl: "https://grig-group.ru/restorani/kitchen-market/",
     phone: "+7 (925) 659-06-00",
   },
   "g-002": {
+    title: "Ресторан Jardin",
     sourceUrl: "https://grig-group.ru/restorani/jardin/",
     phone: "+7 (991) 125-84-21",
   },
   "g-003": {
+    title: "Гриль-бар «Прожарка»",
     sourceUrl: "https://grig-group.ru/restorani/prozharka/",
     phone: "+7 (926) 109-32-11",
   },
   "g-004": {
+    title: "Ресторан «Себастия»",
     sourceUrl: "https://grig-group.ru/restorani/sebastiya/",
     phone: "+7 (926) 525-40-95",
   },
   "g-005": {
+    title: "Пиццерия PAZZO",
     sourceUrl: "https://grig-group.ru/restorani/pazzo/",
     phone: "+7 (926) 099-18-38",
   },
-  "g-006": { sourceUrl: "https://grig-group.ru/restorani/ovsyanka/" },
-  "g-007": { sourceUrl: "https://grig-group.ru/restorani/matrena/" },
-  "g-008": { sourceUrl: "https://grig-group.ru/restorani/tokoro/" },
+  "g-006": {
+    title: "Кафе «Овсянка»",
+    sourceUrl: "https://grig-group.ru/restorani/ovsyanka/",
+  },
+  "g-007": {
+    title: "Чайная «Матрёна»",
+    sourceUrl: "https://grig-group.ru/restorani/matrena/",
+  },
+  "g-008": {
+    title: "Суши-бар «Токоро»",
+    sourceUrl: "https://grig-group.ru/restorani/tokoro/",
+  },
   "g-009": {
+    title: "Ресторан «Фабрикант»",
     sourceUrl: "https://fabricant.rest/",
     phone: "+7 (906) 745-86-69",
   },
-  "g-010": { sourceUrl: "https://la-dacha.com/", phone: "+7 (985) 110-30-57" },
-  "g-012": { sourceUrl: "https://coffeecaster.ru/" },
+  "g-010": {
+    title: "Ресторан «Ла Дача»",
+    sourceUrl: "https://la-dacha.com/",
+    phone: "+7 (985) 110-30-57",
+  },
+  "g-011": { title: "Кафе «Фалафельная № 1»" },
+  "g-012": {
+    title: "Кофейня Coffee Caster",
+    sourceUrl: "https://coffeecaster.ru/",
+  },
+  "g-013": { title: "Кондитерская Pastry Lab" },
   "g-014": {
+    title: "Гастробар Mamas Tapas",
     sourceUrl: "https://mamas-tapas.ru/",
     phone: "+7 (496) 776-55-23",
   },
-  "g-015": { sourceUrl: "https://hookaloft.ru/", phone: "+7 (925) 485-48-56" },
-  "g-016": { sourceUrl: "https://eterirest.ru/", phone: "+7 (965) 449-11-26" },
+  "g-015": {
+    title: "Лаундж-бар Hooka Loft",
+    sourceUrl: "https://hookaloft.ru/",
+    phone: "+7 (925) 485-48-56",
+  },
+  "g-016": {
+    title: "Ресторан «Этери»",
+    sourceUrl: "https://eterirest.ru/",
+    phone: "+7 (965) 449-11-26",
+  },
   "g-017": {
     sourceUrl: "https://phrus.ru/spa-kompleks-akvamarin/",
     phone: "+7 (495) 149-13-13",
@@ -73,6 +107,7 @@ export const ACTIVITY_PATCHES: Record<string, ActivityPatch> = {
   "g-021": { sourceUrl: "https://medovysad.ru/", phone: "+7 (903) 170-70-00" },
   "g-022": { phone: "+7 (910) 424-44-40" },
   "g-023": { phone: "+7 (926) 030-30-74" },
+  "g-025": { title: "Гастропроект «ТарТарТаруса»" },
   "g-026": { sourceUrl: "https://barbarus.beer/" },
   "g-027": { phone: "+7 (901) 769-95-00" },
   "g-029": { sourceUrl: "https://akvapark-serpuhov.ru/" },
@@ -85,13 +120,23 @@ export const ACTIVITY_PATCHES: Record<string, ActivityPatch> = {
   "g-035": { sourceUrl: "https://straus.ru/" },
   "g-036": { sourceUrl: "https://buninriver.ru/" },
   "g-038": { phone: "+7 (929) 597-76-46" },
-  "g-039": { phone: "+7 (999) 505-57-70" },
+  "g-039": {
+    category: "Развлечения с подростками",
+    title: "Боулинг Mr. Mish",
+    description: "Семейный центр с боулингом, бильярдом, сквошем, тиром и кафе",
+    timeOfDay: ["day", "evening"],
+    sourceUrl: "https://мистермиш.рф/",
+    phone: "+7 (999) 505-57-70",
+  },
   "g-040": { sourceUrl: "https://phrus.ru/spa-kompleks-akvamarin/" },
   "g-041": { sourceUrl: "https://pt-zapovednik.ru/" },
   "g-043": { sourceUrl: "https://www.hram-podmoklovo.ru/" },
   "g-047": { sourceUrl: "https://visotskymonastir.ru/" },
   "g-048": { sourceUrl: "https://www.inokini.ru/" },
   "g-049": { sourceUrl: "https://provinciahotel.ru/" },
+  "new-024": { title: "Кафе «Где-то здесь»" },
+  "new-025": { title: "Ресторан «Дядя Дымов»" },
+  "new-026": { title: "Ресторан The Тесто" },
 };
 
 const homeBase: Omit<
@@ -125,6 +170,34 @@ const homeBase: Omit<
 };
 
 export const ADDITIONAL_ACTIVITIES: Activity[] = [
+  {
+    ...homeBase,
+    id: "g-korston-cinema",
+    source: "guide",
+    category: "Развлечения с подростками",
+    type: "place",
+    title: "Кинотеатр «Корстон»",
+    description:
+      "Пять кинозалов, включая VIP-зал, в торгово-развлекательном комплексе",
+    location: "Серпухов, Борисовское шоссе, 1",
+    locationGroup: "Серпухов",
+    travelMinutes: 30,
+    durationMinutes: { min: 120, max: 180 },
+    totalMinutes: { min: 180, max: 240 },
+    seasons: ["all"],
+    weather: ["any", "rain"],
+    conditions: "Сеанс и билеты лучше выбрать заранее",
+    timeOfDay: ["day", "evening"],
+    moods: ["calm", "special"],
+    companions: ["solo", "couple", "children", "friends", "teens"],
+    transport: ["машина"],
+    bookingRequirement: "recommended",
+    notes: "Кинотеатр работает ежедневно; расписание зависит от даты",
+    mapAsset:
+      "https://yandex.ru/maps/?text=%D0%9A%D0%BE%D1%80%D1%81%D1%82%D0%BE%D0%BD%20%D0%BA%D0%B8%D0%BD%D0%BE%D1%82%D0%B5%D0%B0%D1%82%D1%80%20%D0%A1%D0%B5%D1%80%D0%BF%D1%83%D1%85%D0%BE%D0%B2",
+    sourceUrl: "https://cinema.korston.ru/spv/cinema/51/",
+    phone: "+7 (4967) 39-16-39",
+  },
   {
     ...homeBase,
     id: "a-health-trail-level-2",

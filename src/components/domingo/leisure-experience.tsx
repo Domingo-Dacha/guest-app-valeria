@@ -267,20 +267,22 @@ function PlanResult({
         </div>
         <Sparkles aria-hidden="true" />
       </div>
-      {plan.relaxed ? (
-        <p className="plan-notice">
-          Подходящего варианта один в один не нашлось, но вот что хорошо
-          подойдёт сегодня.
-        </p>
-      ) : null}
       {plan.items.length ? (
         <ol className="timeline">
           {plan.items.map(
-            ({ activity, startTime, endTime, travelBeforeMinutes, reason }) => (
+            ({
+              activity,
+              startTime,
+              endTime,
+              travelBeforeMinutes,
+              travelStartTime,
+              reason,
+            }) => (
               <li key={activity.id}>
                 {travelBeforeMinutes > 0 ? (
                   <div className="timeline__travel">
-                    <Car size={16} /> {travelBeforeMinutes} мин в пути
+                    <Car size={16} /> {travelStartTime} · {travelBeforeMinutes}{" "}
+                    мин в пути
                   </div>
                 ) : null}
                 <button type="button" onClick={() => onOpen(activity)}>
@@ -307,15 +309,7 @@ function PlanResult({
             </li>
           ) : null}
         </ol>
-      ) : (
-        <div className="empty-state">
-          <strong>Попробуем немного иначе</strong>
-          <p>
-            Измените время или радиус поездки — безопасные ограничения мы
-            сохраним.
-          </p>
-        </div>
-      )}
+      ) : null}
       <Button
         variant="secondary"
         className="alternative-button"

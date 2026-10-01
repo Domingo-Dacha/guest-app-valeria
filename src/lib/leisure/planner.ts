@@ -27,6 +27,7 @@ export interface PlannedActivity {
   startTime: string;
   endTime: string;
   travelBeforeMinutes: number;
+  travelStartTime: string;
   reason: string;
 }
 
@@ -37,12 +38,6 @@ export interface DayPlan {
   relaxed: boolean;
 }
 
-const budgets: Record<DayLength, number> = {
-  short: 120,
-  medium: 240,
-  "half-day": 360,
-  "full-day": 660,
-};
 const targetCounts: Record<DayLength, number> = {
   short: 2,
   medium: 3,
@@ -79,11 +74,7 @@ function travelMatches(
   if (preference === "20") return travel <= 20;
   if (preference === "40") return travel <= 40;
   if (preference === "far") {
-    return (
-      !isAtDomingo(activity) &&
-      travel >= 40 &&
-      activity.transport.some((item) => /машин|автомоб/i.test(item))
-    );
+    return activity.source !== "domingo" && travel >= 10;
   }
   return true;
 }
@@ -163,12 +154,6 @@ function hardFilter(
   if (
     preferences.companions.includes("children") &&
     !isSafeForChildren(activity)
-  )
-    return false;
-  if (
-    preferences.companions.length &&
-    activity.companions.length &&
-    !preferences.companions.some((item) => activity.companions.includes(item))
   )
     return false;
   return true;
@@ -306,8 +291,7 @@ function displayTime(total: number): string {
 function alignToTimeOfDay(cursor: number, activity: Activity): number | null {
   if (activity.timeOfDay.includes("any")) return cursor;
   if (activity.timeOfDay.includes("morning") && cursor < 12 * 60) return cursor;
-  if (activity.timeOfDay.includes("day") && cursor < 18 * 60)
-    return Math.max(cursor, 12 * 60);
+  if (activity.timeOfDay.includes("day") && cursor < 18 * 60) return cursor;
   if (activity.timeOfDay.includes("evening")) return Math.max(cursor, 18 * 60);
   return null;
 }
@@ -322,13 +306,12 @@ interface ScheduledItem {
 function schedule(
   activities: Activity[],
   preferences: PlannerPreferences,
+  durations = new Map<string, number>(),
+  enforceEnd = true,
 ): { items: ScheduledItem[]; end: number; returnTravelMinutes: number } | null {
   const start = minutesFromTime(preferences.startTime);
   const requestedEnd = minutesFromTime(preferences.endTime);
-  const endLimit = Math.min(
-    requestedEnd,
-    start + budgets[preferences.dayLength],
-  );
+  const endLimit = requestedEnd;
   if (requestedEnd <= start) return null;
   let cursor = start;
   let currentGroup = "Domingo";
@@ -343,8 +326,9 @@ function schedule(
     const aligned = alignToTimeOfDay(cursor, activity);
     if (aligned === null) return null;
     cursor = aligned;
-    const itemEnd = cursor + activityMinutes(activity);
-    if (itemEnd > endLimit) return null;
+    const itemEnd =
+      cursor + (durations.get(activity.id) ?? activityMinutes(activity));
+    if (enforceEnd && itemEnd > endLimit) return null;
     items.push({ activity, start: cursor, end: itemEnd, travelBeforeMinutes });
     cursor = itemEnd;
     currentGroup = activity.locationGroup;
@@ -352,8 +336,60 @@ function schedule(
   }
   const returnTravelMinutes = currentGroup === "Domingo" ? 0 : lastTravel;
   cursor += returnTravelMinutes;
-  if (cursor > endLimit) return null;
+  if (enforceEnd && cursor > endLimit) return null;
   return { items, end: cursor, returnTravelMinutes };
+}
+
+function maximumScheduleEnd(
+  activities: Activity[],
+  preferences: PlannerPreferences,
+): number {
+  const durations = new Map(
+    activities.map((activity) => [
+      activity.id,
+      activity.durationMinutes?.max ?? activityMinutes(activity),
+    ]),
+  );
+  return (
+    schedule(activities, preferences, durations, false)?.end ??
+    minutesFromTime(preferences.startTime)
+  );
+}
+
+function scheduleToEnd(
+  activities: Activity[],
+  preferences: PlannerPreferences,
+): { items: ScheduledItem[]; end: number; returnTravelMinutes: number } | null {
+  const endLimit = minutesFromTime(preferences.endTime);
+  const durations = new Map(
+    activities.map((activity) => [activity.id, activityMinutes(activity)]),
+  );
+  let result = schedule(activities, preferences, durations);
+  if (!result) return null;
+
+  // Durations in the catalog are ranges. Extend suitable blocks minute by
+  // minute so the requested window is occupied exactly, without inventing
+  // gaps between activities or moving the requested start time.
+  const ordered = orderForRoute(activities).toReversed();
+  let changed = true;
+  while (result.end < endLimit && changed) {
+    changed = false;
+    for (const activity of ordered) {
+      const current = durations.get(activity.id) ?? activityMinutes(activity);
+      const maximum = activity.durationMinutes?.max ?? current;
+      if (current >= maximum) continue;
+      durations.set(activity.id, current + 1);
+      const next = schedule(activities, preferences, durations);
+      if (next) {
+        result = next;
+        changed = true;
+      } else {
+        durations.set(activity.id, current);
+      }
+      if (result.end === endLimit) break;
+    }
+  }
+  return result;
 }
 
 function reasonCandidates(
@@ -400,7 +436,9 @@ export function buildDayPlan(
   const fresh = ranked.filter(
     (activity) => !preferences.avoidIds?.includes(activity.id),
   );
+  const endLimit = minutesFromTime(preferences.endTime);
   const passes = fresh.length ? [fresh, ranked] : [ranked];
+  let complete = false;
   for (const candidates of passes) {
     for (const activity of candidates) {
       if (selected.includes(activity)) continue;
@@ -418,11 +456,28 @@ export function buildDayPlan(
         families.set(family, (families.get(family) ?? 0) + 1);
         topics.add(topic);
       }
-      if (selected.length >= desiredCount) break;
+      complete =
+        selected.length >= desiredCount &&
+        maximumScheduleEnd(selected, preferences) >= endLimit;
+      if (complete) break;
     }
-    if (selected.length >= desiredCount) break;
+    if (complete) break;
   }
-  const scheduled = schedule(selected, preferences);
+
+  // A full interval matters more than topic de-duplication. If the varied
+  // pass is too short, add different cards from the same sensible route.
+  if (!complete) {
+    for (const activity of ranked) {
+      if (selected.includes(activity)) continue;
+      if (schedule([...selected, activity], preferences))
+        selected.push(activity);
+      complete =
+        selected.length >= 2 &&
+        maximumScheduleEnd(selected, preferences) >= endLimit;
+      if (complete) break;
+    }
+  }
+  const scheduled = scheduleToEnd(selected, preferences);
   const reasonCounts = new Map<string, number>();
   const items =
     scheduled?.items.map(({ activity, start, end, travelBeforeMinutes }) => {
@@ -436,19 +491,17 @@ export function buildDayPlan(
         startTime: displayTime(start),
         endTime: displayTime(end),
         travelBeforeMinutes,
+        travelStartTime: displayTime(start - travelBeforeMinutes),
         reason,
       };
     }) ?? [];
-  const exactMoodMatch = items.some(({ activity }) =>
-    activity.moods.some((mood) => preferences.moods.includes(mood)),
-  );
   return {
     items,
     endTime: displayTime(
       scheduled?.end ?? minutesFromTime(preferences.startTime),
     ),
     returnTravelMinutes: scheduled?.returnTravelMinutes ?? 0,
-    relaxed: preferences.moods.length > 0 && !exactMoodMatch,
+    relaxed: false,
   };
 }
 
