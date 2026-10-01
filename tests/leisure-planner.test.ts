@@ -172,6 +172,105 @@ describe("leisure day planner", () => {
     ).toBeLessThanOrEqual(1);
   });
 
+  it("keeps siesta strictly between 13:00 and 16:00", () => {
+    const siesta = activityFixture.find(
+      (activity) => activity.id === "dd-siesta",
+    )!;
+    const result = buildDayPlan([siesta], {
+      ...basePreferences,
+      dayLength: "half-day",
+      startTime: "10:00",
+      endTime: "16:00",
+      travel: "home",
+    });
+    expect(result.items).toHaveLength(1);
+    expect(result.items[0]?.startTime).toBe("13:00");
+    expect(result.items[0]?.endTime).toBe("14:30");
+
+    const tooLate = buildDayPlan([siesta], {
+      ...basePreferences,
+      dayLength: "short",
+      startTime: "16:00",
+      endTime: "18:00",
+      travel: "home",
+    });
+    expect(tooLate.items).toHaveLength(0);
+  });
+
+  it("starts the grill dinner no earlier than 16:00", () => {
+    const grill = activityFixture.find((activity) => activity.id === "dd-002")!;
+    const result = buildDayPlan([grill], {
+      ...basePreferences,
+      startTime: "10:00",
+      endTime: "18:00",
+      travel: "home",
+    });
+    expect(result.items).toHaveLength(1);
+    expect(result.items[0]?.startTime).toBe("16:00");
+  });
+
+  it("finishes every breakfast by noon", () => {
+    const breakfasts = activityFixture.filter((activity) =>
+      /завтрак/i.test(activity.title),
+    );
+    for (const breakfast of breakfasts) {
+      const result = buildDayPlan([breakfast], {
+        ...basePreferences,
+        dayLength: "short",
+        startTime: "10:00",
+        endTime: "12:00",
+        travel: "any",
+      });
+      expect(result.items[0]?.endTime, breakfast.title).toBe("11:00");
+
+      const tooLate = buildDayPlan([breakfast], {
+        ...basePreferences,
+        dayLength: "short",
+        startTime: "11:30",
+        endTime: "13:30",
+        travel: "any",
+      });
+      expect(tooLate.items, breakfast.title).toHaveLength(0);
+    }
+  });
+
+  it("treats solo and couple plans equally except for board games", () => {
+    const solo = plan({ companions: ["solo"] }).items.map(
+      ({ activity }) => activity.id,
+    );
+    const couple = plan({ companions: ["couple"] }).items.map(
+      ({ activity }) => activity.id,
+    );
+    expect(solo).toEqual(couple);
+
+    const games = activityFixture.find(
+      (activity) => activity.id === "dd-board-games",
+    )!;
+    expect(
+      buildDayPlan([games], {
+        ...basePreferences,
+        companions: ["solo"],
+        travel: "home",
+      }).items,
+    ).toHaveLength(0);
+    expect(
+      buildDayPlan([games], {
+        ...basePreferences,
+        companions: ["couple"],
+        travel: "home",
+      }).items,
+    ).toHaveLength(1);
+  });
+
+  it("removes prepared-food delivery", () => {
+    expect(
+      activityFixture.find((activity) => activity.id === "dd-019"),
+    ).toMatchObject({
+      status: "disabled",
+      isSelectable: false,
+    });
+  });
+
   it("offers SUP only in summer and a morning run in every season and weather", () => {
     const sup = activityFixture.find((activity) => activity.id === "dd-012")!;
     const run = activityFixture.find((activity) => activity.id === "a-002")!;

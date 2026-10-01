@@ -12,6 +12,7 @@ export const ACTIVITY_PATCHES: Record<string, ActivityPatch> = {
   "dd-015": { status: "disabled", isSelectable: false },
   "dd-016": { status: "disabled", isSelectable: false },
   "dd-018": { status: "disabled", isSelectable: false },
+  "dd-019": { status: "disabled", isSelectable: false },
   "dd-009": { status: "disabled", isSelectable: false },
   "dd-013": { status: "disabled", isSelectable: false },
   "a-001": {
@@ -227,6 +228,7 @@ export const ADDITIONAL_ACTIVITIES: Activity[] = [
     totalMinutes: { min: 120, max: 120 },
     timeOfDay: ["day", "evening"],
     moods: ["calm"],
+    companions: ["couple", "children", "friends", "teens"],
   },
   {
     ...homeBase,
