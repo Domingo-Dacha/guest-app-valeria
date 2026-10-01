@@ -130,6 +130,19 @@ function minutesFromTime(value: string): number {
   return hours * 60 + minutes;
 }
 
+interface ActivityAvailability {
+  earliestStart?: number;
+  latestEnd?: number;
+}
+
+function activityAvailability(activity: Activity): ActivityAvailability {
+  if (activity.id === "dd-siesta")
+    return { earliestStart: 13 * 60, latestEnd: 16 * 60 };
+  if (activity.id === "dd-002") return { earliestStart: 16 * 60 };
+  if (/завтрак/i.test(activity.title)) return { latestEnd: 12 * 60 };
+  return {};
+}
+
 function plannerEndMinutes(preferences: PlannerPreferences): number {
   const start = minutesFromTime(preferences.startTime);
   const requestedEnd = minutesFromTime(preferences.endTime);
@@ -176,13 +189,19 @@ function timeWindowMatches(
   activity: Activity,
   preferences: PlannerPreferences,
 ): boolean {
-  if (activity.timeOfDay.includes("any")) return true;
   const start = minutesFromTime(preferences.startTime);
   const end = plannerEndMinutes(preferences);
-  if (activity.timeOfDay.includes("morning") && start < 12 * 60) return true;
-  if (activity.timeOfDay.includes("day") && start < 18 * 60 && end > 12 * 60)
-    return true;
-  return activity.timeOfDay.includes("evening") && end > 18 * 60;
+  const matchesBroadWindow =
+    activity.timeOfDay.includes("any") ||
+    (activity.timeOfDay.includes("morning") && start < 12 * 60) ||
+    (activity.timeOfDay.includes("day") && start < 18 * 60 && end > 12 * 60) ||
+    (activity.timeOfDay.includes("evening") && end > 18 * 60);
+  if (!matchesBroadWindow) return false;
+
+  const availability = activityAvailability(activity);
+  const availableStart = Math.max(start, availability.earliestStart ?? start);
+  const availableEnd = Math.min(end, availability.latestEnd ?? end);
+  return availableStart + (activity.durationMinutes?.min ?? 0) <= availableEnd;
 }
 
 function hardFilter(
@@ -231,6 +250,14 @@ function hardFilter(
     return false;
   if (preferences.companions.includes("pet") && isUnavailableWithPets(activity))
     return false;
+  if (
+    activity.id === "dd-board-games" &&
+    preferences.companions.includes("solo") &&
+    !preferences.companions.some((item) =>
+      ["couple", "children", "friends", "teens"].includes(item),
+    )
+  )
+    return false;
   return true;
 }
 
@@ -247,8 +274,11 @@ function score(activity: Activity, preferences: PlannerPreferences): number {
   const moodMatches = activity.moods.filter((mood) =>
     preferences.moods.includes(mood),
   ).length;
+  const equivalentCompanions = new Set(preferences.companions);
+  if (equivalentCompanions.has("solo")) equivalentCompanions.add("couple");
+  if (equivalentCompanions.has("couple")) equivalentCompanions.add("solo");
   const companionMatches = activity.companions.filter((item) =>
-    preferences.companions.includes(item),
+    equivalentCompanions.has(item),
   ).length;
   const variety = hash(`${activity.id}:${preferences.variation ?? 0}`) * 12;
   const avoided = preferences.avoidIds?.includes(activity.id) ? 100 : 0;
@@ -418,9 +448,11 @@ function schedule(
     cursor += travelBeforeMinutes;
     const aligned = alignToTimeOfDay(cursor, activity);
     if (aligned === null) return null;
-    cursor = aligned;
+    const availability = activityAvailability(activity);
+    cursor = Math.max(aligned, availability.earliestStart ?? aligned);
     const itemEnd =
       cursor + (durations.get(activity.id) ?? activityMinutes(activity));
+    if (availability.latestEnd && itemEnd > availability.latestEnd) return null;
     if (enforceEnd && itemEnd > endLimit) return null;
     items.push({ activity, start: cursor, end: itemEnd, travelBeforeMinutes });
     cursor = itemEnd;
