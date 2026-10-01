@@ -70,6 +70,7 @@ export const activitySchema = z.object({
   notes: z.string().nullable(),
   mapAsset: z.string().nullable(),
   sourceUrl: z.string().nullable(),
+  phone: z.string().nullable().default(null),
   priority: z.string().nullable(),
   isSelectable: z.boolean(),
   isPaidService: z.boolean(),

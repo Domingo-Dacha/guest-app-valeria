@@ -1,0 +1,176 @@
+import type { Activity } from "@/data/contracts/activity";
+
+export const DOMINGO_GUIDE_URL = "https://domingodacha.ru/guide";
+export const DOMINGO_WHATTODO_URL = "https://domingodacha.ru/whattodo";
+export const DOMINGO_PHONE = "+7 (995) 920-69-09";
+
+type ActivityPatch = Partial<Activity>;
+
+export const ACTIVITY_PATCHES: Record<string, ActivityPatch> = {
+  "dd-004": { status: "disabled", isSelectable: false },
+  "dd-012": { seasons: ["summer"] },
+  "dd-015": { status: "disabled", isSelectable: false },
+  "dd-016": { status: "disabled", isSelectable: false },
+  "a-002": { timeOfDay: ["morning"] },
+  "g-001": {
+    sourceUrl: "https://grig-group.ru/restorani/kitchen-market/",
+    phone: "+7 (925) 659-06-00",
+  },
+  "g-002": {
+    sourceUrl: "https://grig-group.ru/restorani/jardin/",
+    phone: "+7 (991) 125-84-21",
+  },
+  "g-003": {
+    sourceUrl: "https://grig-group.ru/restorani/prozharka/",
+    phone: "+7 (926) 109-32-11",
+  },
+  "g-004": {
+    sourceUrl: "https://grig-group.ru/restorani/sebastiya/",
+    phone: "+7 (926) 525-40-95",
+  },
+  "g-005": {
+    sourceUrl: "https://grig-group.ru/restorani/pazzo/",
+    phone: "+7 (926) 099-18-38",
+  },
+  "g-006": { sourceUrl: "https://grig-group.ru/restorani/ovsyanka/" },
+  "g-007": { sourceUrl: "https://grig-group.ru/restorani/matrena/" },
+  "g-008": { sourceUrl: "https://grig-group.ru/restorani/tokoro/" },
+  "g-009": {
+    sourceUrl: "https://fabricant.rest/",
+    phone: "+7 (906) 745-86-69",
+  },
+  "g-010": { sourceUrl: "https://la-dacha.com/", phone: "+7 (985) 110-30-57" },
+  "g-012": { sourceUrl: "https://coffeecaster.ru/" },
+  "g-014": {
+    sourceUrl: "https://mamas-tapas.ru/",
+    phone: "+7 (496) 776-55-23",
+  },
+  "g-015": { sourceUrl: "https://hookaloft.ru/", phone: "+7 (925) 485-48-56" },
+  "g-016": { sourceUrl: "https://eterirest.ru/", phone: "+7 (965) 449-11-26" },
+  "g-017": {
+    sourceUrl: "https://phrus.ru/spa-kompleks-akvamarin/",
+    phone: "+7 (495) 149-13-13",
+  },
+  "g-018": {
+    sourceUrl: "https://xn--80awicjc3f.xn--p1ai/",
+    phone: "+7 (991) 305-67-66",
+  },
+  "g-019": { phone: "+7 (910) 709-43-40" },
+  "g-020": { phone: "+7 (985) 172-41-23" },
+  "g-021": { sourceUrl: "https://medovysad.ru/", phone: "+7 (903) 170-70-00" },
+  "g-022": { phone: "+7 (910) 424-44-40" },
+  "g-023": { phone: "+7 (926) 030-30-74" },
+  "g-026": { sourceUrl: "https://barbarus.beer/" },
+  "g-027": { phone: "+7 (901) 769-95-00" },
+  "g-029": { sourceUrl: "https://akvapark-serpuhov.ru/" },
+  "g-032": {
+    sourceUrl: "https://arena-bklass.ru/",
+    phone: "+7 (916) 015-75-71",
+  },
+  "g-033": { sourceUrl: "https://birdspark.ru/" },
+  "g-034": { sourceUrl: "https://art-mumu.ru/" },
+  "g-035": { sourceUrl: "https://straus.ru/" },
+  "g-036": { sourceUrl: "https://buninriver.ru/" },
+  "g-038": { phone: "+7 (929) 597-76-46" },
+  "g-039": { phone: "+7 (999) 505-57-70" },
+  "g-040": { sourceUrl: "https://phrus.ru/spa-kompleks-akvamarin/" },
+  "g-041": { sourceUrl: "https://pt-zapovednik.ru/" },
+  "g-043": { sourceUrl: "https://www.hram-podmoklovo.ru/" },
+  "g-047": { sourceUrl: "https://visotskymonastir.ru/" },
+  "g-048": { sourceUrl: "https://www.inokini.ru/" },
+  "g-049": { sourceUrl: "https://provinciahotel.ru/" },
+};
+
+const homeBase: Omit<
+  Activity,
+  "id" | "title" | "description" | "durationMinutes" | "timeOfDay" | "moods"
+> = {
+  status: "active",
+  source: "domingo",
+  category: "Отдых в доме",
+  type: "activity",
+  location: "дом Domingo Dacha",
+  locationGroup: "Domingo",
+  travelMinutes: 0,
+  totalMinutes: null,
+  seasons: ["all"],
+  weather: ["any", "rain"],
+  conditions: null,
+  companions: ["solo", "couple", "children", "friends"],
+  ageRestrictions: null,
+  transport: ["пешком"],
+  bookingRequirement: "none",
+  notes: null,
+  mapAsset: "https://yandex.ru/maps/org/domingo_dacha/133154908041/",
+  sourceUrl: DOMINGO_WHATTODO_URL,
+  phone: DOMINGO_PHONE,
+  priority: null,
+  isSelectable: true,
+  isPaidService: false,
+  serviceId: null,
+};
+
+export const ADDITIONAL_ACTIVITIES: Activity[] = [
+  {
+    ...homeBase,
+    id: "dd-board-games",
+    title: "Настольные игры",
+    description: "Спокойная партия в любимую настольную игру в доме",
+    durationMinutes: { min: 120, max: 120 },
+    totalMinutes: { min: 120, max: 120 },
+    timeOfDay: ["day", "evening"],
+    moods: ["calm"],
+  },
+  {
+    ...homeBase,
+    id: "dd-movie",
+    title: "Кино",
+    description: "Домашний киносеанс вечером",
+    durationMinutes: { min: 120, max: 120 },
+    totalMinutes: { min: 120, max: 120 },
+    timeOfDay: ["evening"],
+    moods: ["calm", "romantic"],
+  },
+  {
+    ...homeBase,
+    id: "dd-reading",
+    title: "Чтение книг",
+    description: "Тихий вечер с книгой в доме",
+    durationMinutes: { min: 60, max: 120 },
+    totalMinutes: { min: 60, max: 120 },
+    timeOfDay: ["evening"],
+    moods: ["calm", "relax"],
+  },
+  {
+    ...homeBase,
+    id: "dd-wine",
+    title: "Выпить бокал вина",
+    description: "Неспешно провести вечер за бокалом вина",
+    durationMinutes: { min: 60, max: 90 },
+    totalMinutes: { min: 60, max: 90 },
+    timeOfDay: ["evening"],
+    moods: ["calm", "romantic", "special"],
+    companions: ["solo", "couple", "friends"],
+    ageRestrictions: "18+",
+  },
+  {
+    ...homeBase,
+    id: "dd-siesta",
+    title: "Сиеста",
+    description: "Небольшой дневной отдых без планов и спешки",
+    durationMinutes: { min: 60, max: 90 },
+    totalMinutes: { min: 60, max: 90 },
+    timeOfDay: ["day"],
+    moods: ["calm", "relax"],
+  },
+  {
+    ...homeBase,
+    id: "dd-sleep-in",
+    title: "Выспаться",
+    description: "Оставить утро свободным и хорошо выспаться",
+    durationMinutes: { min: 120, max: 120 },
+    totalMinutes: { min: 120, max: 120 },
+    timeOfDay: ["morning"],
+    moods: ["calm", "relax"],
+  },
+];
