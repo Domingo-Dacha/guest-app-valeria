@@ -104,7 +104,11 @@ describe("leisure day planner", () => {
   });
 
   it("keeps a short plan within two hours including travel", () => {
-    const result = plan({ dayLength: "short", travel: "20" });
+    const result = plan({
+      dayLength: "short",
+      travel: "20",
+      endTime: "12:00",
+    });
     expect(elapsed("10:00", result.endTime)).toBeLessThanOrEqual(120);
   });
 
@@ -214,16 +218,90 @@ describe("leisure day planner", () => {
     }
   });
 
-  it("supports a far-only car trip", () => {
+  it("supports varied off-property trips starting at ten minutes away", () => {
     const result = plan({ travel: "far", dayLength: "full-day" });
-    expect(result.items.length).toBeGreaterThan(0);
+    expect(result.items.length).toBeGreaterThan(1);
     expect(
       result.items.every(
         ({ activity }) =>
-          (activity.travelMinutes ?? 0) >= 40 &&
-          activity.transport.some((item) => /машин/i.test(item)),
+          activity.source !== "domingo" && (activity.travelMinutes ?? 0) >= 10,
       ),
     ).toBe(true);
+  });
+
+  it("fills the requested interval from its exact start with several blocks", () => {
+    const result = plan({
+      season: "autumn",
+      weather: "rain",
+      companions: ["teens"],
+      moods: ["relax", "learn"],
+      startTime: "10:00",
+      endTime: "20:00",
+      travel: "40",
+    });
+    expect(result.items.length).toBeGreaterThan(1);
+    expect(result.items[0]?.startTime).toBe("10:00");
+    expect(result.endTime).toBe("20:00");
+  });
+
+  it("never leaves a full-day filter combination empty or half-filled", () => {
+    const seasons = ["spring", "summer", "autumn", "winter"] as const;
+    const weather = ["sunny", "hot", "cool", "rain", "snow"] as const;
+    const companions = [
+      "solo",
+      "couple",
+      "children",
+      "friends",
+      "teens",
+      "pet",
+    ] as const;
+    const travel = ["home", "20", "40", "far", "any"] as const;
+
+    for (const season of seasons) {
+      for (const weatherValue of weather) {
+        for (const companion of companions) {
+          for (const travelValue of travel) {
+            const result = plan({
+              season,
+              weather: weatherValue,
+              companions: [companion],
+              travel: travelValue,
+              startTime: "10:00",
+              endTime: "20:00",
+            });
+            const scenario = `${season}/${weatherValue}/${companion}/${travelValue}`;
+            expect(result.items.length, scenario).toBeGreaterThan(1);
+            expect(
+              elapsed("10:00", result.items[0]?.startTime ?? "10:00"),
+              scenario,
+            ).toBe(result.items[0]?.travelBeforeMinutes ?? 0);
+            expect(result.endTime, scenario).toBe("20:00");
+          }
+        }
+      }
+    }
+  });
+
+  it("removes grocery delivery and includes teen bowling and cinema", () => {
+    expect(
+      activityFixture.some(
+        (activity) =>
+          activity.status === "active" &&
+          activity.title === "Доставка продуктов",
+      ),
+    ).toBe(false);
+    expect(
+      activityFixture.find((activity) => activity.id === "g-039"),
+    ).toMatchObject({
+      title: "Боулинг Mr. Mish",
+      phone: "+7 (999) 505-57-70",
+    });
+    expect(
+      activityFixture.find((activity) => activity.id === "g-korston-cinema"),
+    ).toMatchObject({
+      title: "Кинотеатр «Корстон»",
+      phone: "+7 (4967) 39-16-39",
+    });
   });
 
   it("splits games and movies and keeps new calm activities in their time slots", () => {

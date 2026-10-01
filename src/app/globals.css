@@ -1120,6 +1120,14 @@ input:disabled {
   .planner-form {
     border-radius: 22px;
   }
+  .time-window {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+  }
+  .start-time {
+    width: 100%;
+    max-width: none;
+  }
   .planner-cta .button {
     width: 100%;
   }
