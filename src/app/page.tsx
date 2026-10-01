@@ -1,6 +1,7 @@
 import { AppShell } from "@/components/domingo/app-shell";
 import { HouseCard } from "@/components/domingo/house-card";
 import { RequestDemo } from "@/components/domingo/request-demo";
+import { Alert } from "@/components/ui/alert";
 import { fixtureCatalogRepository } from "@/data/repositories/fixture-catalog-repository";
 import { requirePageSession } from "@/lib/auth/server-session";
 
@@ -35,6 +36,9 @@ export default async function Home() {
           Здесь нет заранее выбранного продукта. Используйте компоненты,
           тестовые данные и серверные заявки, чтобы быстро проверить свою идею.
         </p>
+        <Alert tone="success">
+          <strong>Команда Валерия готова</strong>
+        </Alert>
       </section>
       <section className="section" aria-labelledby="houses-title">
         <div className="section-heading">
