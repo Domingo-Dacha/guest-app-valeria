@@ -27,6 +27,8 @@ import { trackLeisureEvent } from "@/lib/analytics/leisure";
 import {
   buildDayPlan,
   filterCatalog,
+  normalizedEndTime,
+  recommendedEndTime,
   type DayLength,
   type DayPlan,
   type PlannerPreferences,
@@ -38,8 +40,8 @@ type Section = "domingo" | "guide" | "planner";
 const durationOptions: { value: DayLength; label: string }[] = [
   { value: "short", label: "1–2 часа" },
   { value: "medium", label: "3–4 часа" },
-  { value: "half-day", label: "Полдня" },
-  { value: "full-day", label: "Весь день" },
+  { value: "half-day", label: "Полдня · около 6 часов" },
+  { value: "full-day", label: "Весь день · 8–12 часов" },
 ];
 
 const travelOptions: { value: TravelPreference; label: string }[] = [
@@ -344,18 +346,26 @@ function Planner({
   const [plan, setPlan] = useState<DayPlan | null>(null);
 
   const generate = (alternative = false) => {
+    const normalized = {
+      ...preferences,
+      endTime: normalizedEndTime(
+        preferences.startTime,
+        preferences.endTime,
+        preferences.dayLength,
+      ),
+    };
     const next = alternative
       ? {
-          ...preferences,
-          variation: (preferences.variation ?? 0) + 1,
+          ...normalized,
+          variation: (normalized.variation ?? 0) + 1,
           avoidIds: [
             ...new Set([
-              ...(preferences.avoidIds ?? []),
+              ...(normalized.avoidIds ?? []),
               ...(plan?.items.map(({ activity }) => activity.id) ?? []),
             ]),
           ],
         }
-      : preferences;
+      : normalized;
     setPreferences(next);
     trackLeisureEvent(
       alternative ? "planner_alternative_requested" : "planner_started",
@@ -428,7 +438,12 @@ function Planner({
           options={durationOptions}
           values={[preferences.dayLength]}
           onChange={([dayLength]) =>
-            dayLength && setPreferences({ ...preferences, dayLength })
+            dayLength &&
+            setPreferences({
+              ...preferences,
+              dayLength,
+              endTime: recommendedEndTime(preferences.startTime, dayLength),
+            })
           }
         />
         <ChoiceGroup
@@ -445,12 +460,14 @@ function Planner({
             <input
               type="time"
               value={preferences.startTime}
-              onChange={(event) =>
+              onChange={(event) => {
+                const startTime = event.target.value;
                 setPreferences({
                   ...preferences,
-                  startTime: event.target.value,
-                })
-              }
+                  startTime,
+                  endTime: recommendedEndTime(startTime, preferences.dayLength),
+                });
+              }}
             />
           </label>
           <label className="start-time">

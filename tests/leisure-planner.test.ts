@@ -129,9 +129,47 @@ describe("leisure day planner", () => {
     expect(overlap.length).toBeLessThanOrEqual(1);
   });
 
-  it("finishes by the requested end time", () => {
-    const result = plan({ endTime: "15:00", dayLength: "full-day" });
-    expect(elapsed("10:00", result.endTime)).toBeLessThanOrEqual(300);
+  it("normalizes every duration choice to its promised time window", () => {
+    const scenarios = [
+      ["short", 60, 120, "21:00"],
+      ["medium", 180, 240, "21:00"],
+      ["half-day", 300, 420, "21:00"],
+      ["full-day", 480, 720, "15:00"],
+    ] as const;
+    for (const [dayLength, minimum, maximum, endTime] of scenarios) {
+      const result = plan({ dayLength, endTime });
+      const duration = elapsed("10:00", result.endTime);
+      expect(duration, dayLength).toBeGreaterThanOrEqual(minimum);
+      expect(duration, dayLength).toBeLessThanOrEqual(maximum);
+    }
+  });
+
+  it("never combines siesta with sleeping in", () => {
+    const result = buildDayPlan(
+      activityFixture.filter((activity) =>
+        ["dd-siesta", "dd-sleep-in"].includes(activity.id),
+      ),
+      { ...basePreferences, travel: "home" },
+    );
+    expect(
+      result.items.filter(({ activity }) =>
+        ["dd-siesta", "dd-sleep-in"].includes(activity.id),
+      ).length,
+    ).toBeLessThanOrEqual(1);
+  });
+
+  it("never combines breakfast from Margo with the Margo farm", () => {
+    const result = buildDayPlan(
+      activityFixture.filter((activity) =>
+        ["dd-017", "g-020"].includes(activity.id),
+      ),
+      { ...basePreferences, travel: "any" },
+    );
+    expect(
+      result.items.filter(({ activity }) =>
+        ["dd-017", "g-020"].includes(activity.id),
+      ).length,
+    ).toBeLessThanOrEqual(1);
   });
 
   it("offers SUP only in summer and a morning run in every season and weather", () => {

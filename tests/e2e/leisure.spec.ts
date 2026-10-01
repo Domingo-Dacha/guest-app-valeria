@@ -102,6 +102,20 @@ test("always builds a complete rainy-day plan with teenagers", async ({
   await expect(page.locator(".timeline")).toContainText("20:00");
 });
 
+test("keeps the selected duration and end time in sync", async ({ page }) => {
+  await page.goto("/leisure");
+  const endTime = page.getByLabel("К какому времени закончить");
+
+  await page.getByRole("button", { name: "1–2 часа" }).click();
+  await expect(endTime).toHaveValue("12:00");
+  await page.getByRole("button", { name: "3–4 часа" }).click();
+  await expect(endTime).toHaveValue("14:00");
+  await page.getByRole("button", { name: "Полдня · около 6 часов" }).click();
+  await expect(endTime).toHaveValue("16:00");
+  await page.getByRole("button", { name: "Весь день · 8–12 часов" }).click();
+  await expect(endTime).toHaveValue("20:00");
+});
+
 test("shows the supplied map in each matching route card and dialog", async ({
   page,
 }) => {

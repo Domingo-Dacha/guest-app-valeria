@@ -38,6 +38,16 @@ export interface DayPlan {
   relaxed: boolean;
 }
 
+export const DAY_LENGTH_WINDOWS: Record<
+  DayLength,
+  { min: number; max: number; preferred: number }
+> = {
+  short: { min: 60, max: 120, preferred: 120 },
+  medium: { min: 180, max: 240, preferred: 240 },
+  "half-day": { min: 300, max: 420, preferred: 360 },
+  "full-day": { min: 480, max: 720, preferred: 600 },
+};
+
 const targetCounts: Record<DayLength, number> = {
   short: 2,
   medium: 3,
@@ -120,13 +130,55 @@ function minutesFromTime(value: string): number {
   return hours * 60 + minutes;
 }
 
+function plannerEndMinutes(preferences: PlannerPreferences): number {
+  const start = minutesFromTime(preferences.startTime);
+  const requestedEnd = minutesFromTime(preferences.endTime);
+  const requestedDuration = requestedEnd - start;
+  const window = DAY_LENGTH_WINDOWS[preferences.dayLength];
+  if (requestedDuration >= window.min && requestedDuration <= window.max)
+    return requestedEnd;
+
+  const availableToday = 24 * 60 - 1 - start;
+  if (availableToday < window.min && requestedDuration > 0) return requestedEnd;
+  return start + Math.min(window.preferred, availableToday);
+}
+
+export function recommendedEndTime(
+  startTime: string,
+  dayLength: DayLength,
+): string {
+  const start = minutesFromTime(startTime);
+  const availableToday = 24 * 60 - 1 - start;
+  const window = DAY_LENGTH_WINDOWS[dayLength];
+  return displayTime(start + Math.min(window.preferred, availableToday));
+}
+
+export function normalizedEndTime(
+  startTime: string,
+  endTime: string,
+  dayLength: DayLength,
+): string {
+  return displayTime(
+    plannerEndMinutes({
+      season: "all",
+      weather: "any",
+      moods: [],
+      companions: [],
+      dayLength,
+      startTime,
+      endTime,
+      travel: "any",
+    }),
+  );
+}
+
 function timeWindowMatches(
   activity: Activity,
   preferences: PlannerPreferences,
 ): boolean {
   if (activity.timeOfDay.includes("any")) return true;
   const start = minutesFromTime(preferences.startTime);
-  const end = minutesFromTime(preferences.endTime);
+  const end = plannerEndMinutes(preferences);
   if (activity.timeOfDay.includes("morning") && start < 12 * 60) return true;
   if (activity.timeOfDay.includes("day") && start < 18 * 60 && end > 12 * 60)
     return true;
@@ -289,6 +341,24 @@ function topicKey(activity: Activity): string {
   return topics.find(([, pattern]) => pattern.test(value))?.[0] ?? activity.id;
 }
 
+function selectionConflictKey(activity: Activity): string | null {
+  if (activity.id === "dd-siesta" || activity.id === "dd-sleep-in")
+    return "rest-or-sleep";
+  if (activity.id === "dd-017" || activity.id === "g-020") return "margo";
+  return null;
+}
+
+function conflictsWithSelection(
+  activity: Activity,
+  selected: Activity[],
+): boolean {
+  const conflict = selectionConflictKey(activity);
+  return Boolean(
+    conflict &&
+    selected.some((item) => selectionConflictKey(item) === conflict),
+  );
+}
+
 function orderForRoute(items: Activity[]): Activity[] {
   const timeRank = (item: Activity) =>
     item.timeOfDay.includes("morning")
@@ -333,7 +403,7 @@ function schedule(
   enforceEnd = true,
 ): { items: ScheduledItem[]; end: number; returnTravelMinutes: number } | null {
   const start = minutesFromTime(preferences.startTime);
-  const requestedEnd = minutesFromTime(preferences.endTime);
+  const requestedEnd = plannerEndMinutes(preferences);
   const endLimit = requestedEnd;
   if (requestedEnd <= start) return null;
   let cursor = start;
@@ -383,7 +453,7 @@ function scheduleToEnd(
   activities: Activity[],
   preferences: PlannerPreferences,
 ): { items: ScheduledItem[]; end: number; returnTravelMinutes: number } | null {
-  const endLimit = minutesFromTime(preferences.endTime);
+  const endLimit = plannerEndMinutes(preferences);
   const durations = new Map(
     activities.map((activity) => [activity.id, activityMinutes(activity)]),
   );
@@ -462,12 +532,13 @@ export function buildDayPlan(
   const fresh = ranked.filter(
     (activity) => !preferences.avoidIds?.includes(activity.id),
   );
-  const endLimit = minutesFromTime(preferences.endTime);
+  const endLimit = plannerEndMinutes(preferences);
   const passes = fresh.length ? [fresh, ranked] : [ranked];
   let complete = false;
   for (const candidates of passes) {
     for (const activity of candidates) {
       if (selected.includes(activity)) continue;
+      if (conflictsWithSelection(activity, selected)) continue;
       const family = categoryFamily(activity);
       const topic = topicKey(activity);
       if (topics.has(topic)) continue;
@@ -495,6 +566,7 @@ export function buildDayPlan(
   if (!complete) {
     for (const activity of ranked) {
       if (selected.includes(activity)) continue;
+      if (conflictsWithSelection(activity, selected)) continue;
       if (schedule([...selected, activity], preferences))
         selected.push(activity);
       complete =
