@@ -132,16 +132,66 @@ describe("leisure day planner", () => {
     expect(elapsed("10:00", result.endTime)).toBeLessThanOrEqual(300);
   });
 
-  it("offers SUP only in summer and runs only in the morning", () => {
+  it("offers SUP only in summer and a morning run in every season and weather", () => {
     const sup = activityFixture.find((activity) => activity.id === "dd-012")!;
     const run = activityFixture.find((activity) => activity.id === "a-002")!;
     expect(sup.seasons).toEqual(["summer"]);
     expect(run.timeOfDay).toEqual(["morning"]);
+    expect(run.title).toBe("Пробежка");
+    expect(run.seasons).toEqual(["all"]);
+    expect(run.weather).toEqual(["any"]);
     expect(
       plan({ season: "autumn", weather: "cool" }).items.some(
         ({ activity }) => activity.id === "dd-012",
       ),
     ).toBe(false);
+  });
+
+  it("matches each health trail level to an active short or medium day", () => {
+    const shortPlan = plan({
+      dayLength: "short",
+      moods: ["active"],
+      startTime: "09:00",
+      endTime: "12:00",
+      travel: "home",
+    });
+    const mediumPlan = plan({
+      dayLength: "medium",
+      moods: ["active"],
+      startTime: "09:00",
+      endTime: "14:00",
+      travel: "home",
+    });
+    expect(shortPlan.items.some((item) => item.activity.id === "a-001")).toBe(
+      true,
+    );
+    expect(
+      shortPlan.items.some(
+        (item) => item.activity.id === "a-health-trail-level-2",
+      ),
+    ).toBe(false);
+    expect(
+      mediumPlan.items.some(
+        (item) => item.activity.id === "a-health-trail-level-2",
+      ),
+    ).toBe(true);
+    expect(mediumPlan.items.some((item) => item.activity.id === "a-001")).toBe(
+      false,
+    );
+  });
+
+  it("attaches the four supplied maps to their route cards", () => {
+    const expected = new Map([
+      ["a-001", "/activity-maps/health-trail-level-1.webp"],
+      ["a-health-trail-level-2", "/activity-maps/health-trail-level-2.webp"],
+      ["a-002", "/activity-maps/running-route.webp"],
+      ["a-003", "/activity-maps/bike-route.webp"],
+    ]);
+    for (const [id, imageAsset] of expected) {
+      expect(
+        activityFixture.find((activity) => activity.id === id)?.imageAsset,
+      ).toBe(imageAsset);
+    }
   });
 
   it("uses Forest Fishing as the only fishing option", () => {

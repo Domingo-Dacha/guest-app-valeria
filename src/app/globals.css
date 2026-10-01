@@ -729,12 +729,16 @@ input:disabled {
   text-align: left;
 }
 .activity-card__visual {
+  position: relative;
   display: grid;
   min-height: 154px;
   align-self: stretch;
   place-items: center;
   background: linear-gradient(145deg, #dbece8, #a9c9bf);
   color: var(--brand);
+}
+.activity-card__image {
+  object-fit: cover;
 }
 .activity-card__visual--route {
   background: linear-gradient(145deg, #e4ead6, #b9c99a);
@@ -967,6 +971,14 @@ input:disabled {
 .activity-dialog > p:not(.eyebrow):not(.plan-notice):not(.activity-note) {
   color: var(--text-muted);
   line-height: 1.6;
+}
+.activity-dialog__image {
+  width: 100%;
+  height: auto;
+  max-height: 540px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  object-fit: contain;
 }
 .activity-details {
   display: grid;

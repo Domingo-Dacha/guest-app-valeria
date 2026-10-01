@@ -69,6 +69,7 @@ export const activitySchema = z.object({
   bookingRequirement: z.enum(["none", "recommended", "required", "check"]),
   notes: z.string().nullable(),
   mapAsset: z.string().nullable(),
+  imageAsset: z.string().nullable().default(null),
   sourceUrl: z.string().nullable(),
   phone: z.string().nullable().default(null),
   priority: z.string().nullable(),

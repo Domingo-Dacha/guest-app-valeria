@@ -11,7 +11,20 @@ export const ACTIVITY_PATCHES: Record<string, ActivityPatch> = {
   "dd-012": { seasons: ["summer"] },
   "dd-015": { status: "disabled", isSelectable: false },
   "dd-016": { status: "disabled", isSelectable: false },
-  "a-002": { timeOfDay: ["morning"] },
+  "a-001": {
+    title: "Тропа здоровья — 1-й лайт уровень",
+    description: "Лёгкий кольцевой маршрут для активной прогулки на 1–2 часа",
+    imageAsset: "/activity-maps/health-trail-level-1.webp",
+  },
+  "a-002": {
+    title: "Пробежка",
+    description: "Утренний беговой маршрут с картой и километражом",
+    seasons: ["all"],
+    weather: ["any"],
+    timeOfDay: ["morning"],
+    imageAsset: "/activity-maps/running-route.webp",
+  },
+  "a-003": { imageAsset: "/activity-maps/bike-route.webp" },
   "g-001": {
     sourceUrl: "https://grig-group.ru/restorani/kitchen-market/",
     phone: "+7 (925) 659-06-00",
@@ -102,6 +115,7 @@ const homeBase: Omit<
   bookingRequirement: "none",
   notes: null,
   mapAsset: "https://yandex.ru/maps/org/domingo_dacha/133154908041/",
+  imageAsset: null,
   sourceUrl: DOMINGO_WHATTODO_URL,
   phone: DOMINGO_PHONE,
   priority: null,
@@ -111,6 +125,23 @@ const homeBase: Omit<
 };
 
 export const ADDITIONAL_ACTIVITIES: Activity[] = [
+  {
+    ...homeBase,
+    id: "a-health-trail-level-2",
+    category: "Маршруты Domingo",
+    type: "route",
+    title: "Тропа здоровья — 2-й активный уровень",
+    description: "Протяжённый маршрут через лес для активного дня на 3–4 часа",
+    location: "Венский лес",
+    durationMinutes: { min: 180, max: 240 },
+    totalMinutes: { min: 180, max: 240 },
+    weather: ["sunny", "cool", "snow"],
+    conditions: "Удобная обувь; зимой учитывать снег и гололёд",
+    timeOfDay: ["morning", "day"],
+    moods: ["active", "nature"],
+    notes: "Активный лесной маршрут второго уровня",
+    imageAsset: "/activity-maps/health-trail-level-2.webp",
+  },
   {
     ...homeBase,
     id: "dd-board-games",

@@ -18,6 +18,7 @@ import {
   X,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import Image from "next/image";
 
 import { Button } from "@/components/ui/button";
 import type { Activity, Season } from "@/data/contracts/activity";
@@ -86,7 +87,15 @@ function ActivityCard({
         className={`activity-card__visual activity-card__visual--${activity.type}`}
         aria-hidden="true"
       >
-        {activity.type === "route" ? (
+        {activity.imageAsset ? (
+          <Image
+            className="activity-card__image"
+            src={activity.imageAsset}
+            alt=""
+            fill
+            sizes="(max-width: 720px) 94px, 124px"
+          />
+        ) : activity.type === "route" ? (
           <Route />
         ) : activity.travelMinutes === 0 ? (
           <House />
@@ -517,6 +526,15 @@ function ActivityDialog({
         <p className="eyebrow">{activity.category}</p>
         <h2 id="activity-dialog-title">{activity.title}</h2>
         <p>{activity.description}</p>
+        {activity.imageAsset ? (
+          <Image
+            className="activity-dialog__image"
+            src={activity.imageAsset}
+            alt={`Карта активности «${activity.title}»`}
+            width={1200}
+            height={1600}
+          />
+        ) : null}
         <dl className="activity-details">
           <div>
             <dt>

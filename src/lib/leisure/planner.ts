@@ -94,6 +94,7 @@ function isSafeForChildren(activity: Activity): boolean {
 }
 
 function isIndoor(activity: Activity): boolean {
+  if (activity.id === "a-002") return true;
   const value =
     `${activity.title} ${activity.category} ${activity.description ?? ""}`.toLocaleLowerCase(
       "ru",
@@ -131,6 +132,20 @@ function hardFilter(
     !activity.durationMinutes
   )
     return false;
+  if (activity.id === "a-001") {
+    if (
+      preferences.dayLength !== "short" ||
+      !preferences.moods.includes("active")
+    )
+      return false;
+  }
+  if (activity.id === "a-health-trail-level-2") {
+    if (
+      preferences.dayLength !== "medium" ||
+      !preferences.moods.includes("active")
+    )
+      return false;
+  }
   if (
     !activity.seasons.includes("all") &&
     !activity.seasons.includes(preferences.season)
@@ -188,11 +203,16 @@ function score(activity: Activity, preferences: PlannerPreferences): number {
     /пляж|загорать|шезлонг/i.test(activity.title)
       ? 18
       : 0;
+  const healthTrailBonus =
+    activity.id === "a-001" || activity.id === "a-health-trail-level-2"
+      ? 40
+      : 0;
   return (
     moodMatches * 6 +
     companionMatches * 4 +
     priorityBonus +
     hotBonus +
+    healthTrailBonus +
     variety -
     avoided -
     bookingPenalty

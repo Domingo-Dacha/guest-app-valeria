@@ -72,3 +72,28 @@ test("limits moods to three and shows both time boundaries", async ({
   await expect(page.getByLabel("С какого времени начать")).toBeVisible();
   await expect(page.getByLabel("К какому времени закончить")).toBeVisible();
 });
+
+test("shows the supplied map in each matching route card and dialog", async ({
+  page,
+}) => {
+  await page.goto("/leisure");
+  await page.getByRole("button", { name: /В Domingo/ }).click();
+
+  for (const title of [
+    "Веломаршрут",
+    "Пробежка",
+    "Тропа здоровья — 1-й лайт уровень",
+    "Тропа здоровья — 2-й активный уровень",
+  ]) {
+    const card = page.locator(".activity-card").filter({ hasText: title });
+    await expect(card.locator("img")).toBeVisible();
+  }
+
+  await page
+    .locator(".activity-card")
+    .filter({ hasText: "Веломаршрут" })
+    .click();
+  await expect(
+    page.getByAltText("Карта активности «Веломаршрут»"),
+  ).toBeVisible();
+});
