@@ -32,7 +32,7 @@ test("builds a realistic day and keeps the layout inside the viewport", async ({
 }) => {
   await page.goto("/leisure");
   await expect(
-    page.getByRole("heading", { name: "Чем заняться сегодня" }),
+    page.getByRole("heading", { name: "Ваш день в Domingo" }).first(),
   ).toBeVisible();
   await page.getByRole("button", { name: "Лето" }).click();
   await page.getByRole("button", { name: "Солнечно" }).click();
@@ -40,7 +40,9 @@ test("builds a realistic day and keeps the layout inside the viewport", async ({
   await page.getByRole("button", { name: "С детьми" }).click();
   await page.getByRole("button", { name: /Собрать мой день/ }).click();
   await expect(
-    page.getByRole("heading", { name: "Ваш день в Domingo" }),
+    page
+      .locator(".plan-result")
+      .getByRole("heading", { name: "Ваш день в Domingo" }),
   ).toBeVisible();
   await expect(page.locator(".timeline > li").first()).toBeVisible();
 
@@ -56,5 +58,42 @@ test("opens a catalog activity detail card", async ({ page }) => {
   await page.getByRole("button", { name: /В Domingo/ }).click();
   await page.locator(".activity-card").first().click();
   await expect(page.getByRole("dialog")).toBeVisible();
+  await expect(page.getByText("Телефон", { exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Закрыть" })).toBeVisible();
+});
+
+test("limits moods to three and shows both time boundaries", async ({
+  page,
+}) => {
+  await page.goto("/leisure");
+  await page.getByRole("button", { name: "Активно" }).click();
+  await page.getByRole("button", { name: "Расслабиться" }).click();
+  await expect(page.getByRole("button", { name: "На природе" })).toBeDisabled();
+  await expect(page.getByLabel("С какого времени начать")).toBeVisible();
+  await expect(page.getByLabel("К какому времени закончить")).toBeVisible();
+});
+
+test("shows the supplied map in each matching route card and dialog", async ({
+  page,
+}) => {
+  await page.goto("/leisure");
+  await page.getByRole("button", { name: /В Domingo/ }).click();
+
+  for (const title of [
+    "Веломаршрут",
+    "Пробежка",
+    "Тропа здоровья — 1-й лайт уровень",
+    "Тропа здоровья — 2-й активный уровень",
+  ]) {
+    const card = page.locator(".activity-card").filter({ hasText: title });
+    await expect(card.locator("img")).toBeVisible();
+  }
+
+  await page
+    .locator(".activity-card")
+    .filter({ hasText: "Веломаршрут" })
+    .click();
+  await expect(
+    page.getByAltText("Карта активности «Веломаршрут»"),
+  ).toBeVisible();
 });

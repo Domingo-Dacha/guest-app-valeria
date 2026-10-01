@@ -11,18 +11,17 @@ import {
   House,
   Map,
   MapPin,
+  Phone,
   RefreshCw,
   Route,
   Sparkles,
   X,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import Image from "next/image";
 
 import { Button } from "@/components/ui/button";
-import type {
-  Activity,
-  Season,
-} from "@/data/contracts/activity";
+import type { Activity, Season } from "@/data/contracts/activity";
 import { ACTIVITY_OPTIONS, LABELS } from "@/data/fixtures/activity-options";
 import { trackLeisureEvent } from "@/lib/analytics/leisure";
 import {
@@ -45,10 +44,10 @@ const durationOptions: { value: DayLength; label: string }[] = [
 
 const travelOptions: { value: TravelPreference; label: string }[] = [
   { value: "home", label: "Не хочу уезжать" },
-  { value: "nearby", label: "Только рядом" },
   { value: "20", label: "До 20 минут" },
   { value: "40", label: "До 40 минут" },
-  { value: "any", label: "Можно дальше" },
+  { value: "far", label: "Только дальше" },
+  { value: "any", label: "Без ограничений" },
 ];
 
 const bookingLabels: Record<Activity["bookingRequirement"], string> = {
@@ -88,7 +87,15 @@ function ActivityCard({
         className={`activity-card__visual activity-card__visual--${activity.type}`}
         aria-hidden="true"
       >
-        {activity.type === "route" ? (
+        {activity.imageAsset ? (
+          <Image
+            className="activity-card__image"
+            src={activity.imageAsset}
+            alt=""
+            fill
+            sizes="(max-width: 720px) 94px, 124px"
+          />
+        ) : activity.type === "route" ? (
           <Route />
         ) : activity.travelMinutes === 0 ? (
           <House />
@@ -179,12 +186,14 @@ function ChoiceGroup<T extends string>({
   values,
   onChange,
   multiple = false,
+  maxSelections,
 }: {
   label: string;
   options: readonly { value: T; label: string }[];
   values: T[];
   onChange: (values: T[]) => void;
   multiple?: boolean;
+  maxSelections?: number;
 }) {
   return (
     <fieldset className="planner-question">
@@ -192,11 +201,15 @@ function ChoiceGroup<T extends string>({
       <div className="choice-grid">
         {options.map((option) => {
           const selected = values.includes(option.value);
+          const limitReached = Boolean(
+            multiple && maxSelections && values.length >= maxSelections,
+          );
           return (
             <button
               type="button"
               className={`choice-chip ${selected ? "choice-chip--selected" : ""}`}
               aria-pressed={selected}
+              disabled={!selected && limitReached}
               onClick={() => {
                 const next = multiple
                   ? toggleValue(values, option.value)
@@ -214,6 +227,11 @@ function ChoiceGroup<T extends string>({
           );
         })}
       </div>
+      {maxSelections ? (
+        <p className="choice-limit">
+          Можно выбрать до {maxSelections} вариантов · выбрано {values.length}
+        </p>
+      ) : null}
     </fieldset>
   );
 }
@@ -320,11 +338,12 @@ function Planner({
 }) {
   const [preferences, setPreferences] = useState<PlannerPreferences>({
     season: initialSeason,
-    weather: "cloudy",
+    weather: "cool",
     moods: ["calm"],
     companions: ["couple"],
     dayLength: "full-day",
     startTime: "10:00",
+    endTime: "21:00",
     travel: "40",
     variation: 0,
   });
@@ -335,7 +354,12 @@ function Planner({
       ? {
           ...preferences,
           variation: (preferences.variation ?? 0) + 1,
-          avoidIds: plan?.items.map(({ activity }) => activity.id),
+          avoidIds: [
+            ...new Set([
+              ...(preferences.avoidIds ?? []),
+              ...(plan?.items.map(({ activity }) => activity.id) ?? []),
+            ]),
+          ],
         }
       : preferences;
     setPreferences(next);
@@ -393,6 +417,7 @@ function Planner({
           options={ACTIVITY_OPTIONS.moods}
           values={preferences.moods}
           multiple
+          maxSelections={3}
           onChange={(moods) => setPreferences({ ...preferences, moods })}
         />
         <ChoiceGroup
@@ -420,16 +445,32 @@ function Planner({
             travel && setPreferences({ ...preferences, travel })
           }
         />
-        <label className="start-time">
-          <span>С какого времени начать</span>
-          <input
-            type="time"
-            value={preferences.startTime}
-            onChange={(event) =>
-              setPreferences({ ...preferences, startTime: event.target.value })
-            }
-          />
-        </label>
+        <div className="time-window">
+          <label className="start-time">
+            <span>С какого времени начать</span>
+            <input
+              type="time"
+              value={preferences.startTime}
+              onChange={(event) =>
+                setPreferences({
+                  ...preferences,
+                  startTime: event.target.value,
+                })
+              }
+            />
+          </label>
+          <label className="start-time">
+            <span>К какому времени закончить</span>
+            <input
+              type="time"
+              value={preferences.endTime}
+              min={preferences.startTime}
+              onChange={(event) =>
+                setPreferences({ ...preferences, endTime: event.target.value })
+              }
+            />
+          </label>
+        </div>
       </div>
       <div className="planner-cta">
         <Button onClick={() => generate(false)}>
@@ -485,6 +526,15 @@ function ActivityDialog({
         <p className="eyebrow">{activity.category}</p>
         <h2 id="activity-dialog-title">{activity.title}</h2>
         <p>{activity.description}</p>
+        {activity.imageAsset ? (
+          <Image
+            className="activity-dialog__image"
+            src={activity.imageAsset}
+            alt={`Карта активности «${activity.title}»`}
+            width={1200}
+            height={1600}
+          />
+        ) : null}
         <dl className="activity-details">
           <div>
             <dt>
@@ -515,6 +565,20 @@ function ActivityDialog({
               <CalendarClock size={17} /> Запись
             </dt>
             <dd>{bookingLabels[activity.bookingRequirement]}</dd>
+          </div>
+          <div>
+            <dt>
+              <Phone size={17} /> Телефон
+            </dt>
+            <dd>
+              {activity.phone ? (
+                <a href={`tel:${activity.phone.replace(/[^+\d]/g, "")}`}>
+                  {activity.phone}
+                </a>
+              ) : (
+                "Не указан в гиде"
+              )}
+            </dd>
           </div>
         </dl>
         {activity.conditions ? (
@@ -610,10 +674,10 @@ export function LeisureExperience({
       <section className="leisure-hero">
         <div className="leisure-hero__copy">
           <p className="eyebrow">Domingo рядом</p>
-          <h1>Чем заняться сегодня</h1>
+          <h1>Ваш день в Domingo</h1>
           <p>
-            Выберите идею сами — или доверьте нам собрать спокойный, выполнимый
-            день целиком.
+            Останьтесь на даче, отправляйтесь исследовать окрестности или
+            доверьте нам собрать день под ваше настроение.
           </p>
         </div>
         <div

@@ -6,7 +6,7 @@ import type {
   Weather,
 } from "@/data/contracts/activity";
 
-export type TravelPreference = "home" | "nearby" | "20" | "40" | "any";
+export type TravelPreference = "home" | "20" | "40" | "far" | "any";
 export type DayLength = "short" | "medium" | "half-day" | "full-day";
 
 export interface PlannerPreferences {
@@ -16,6 +16,7 @@ export interface PlannerPreferences {
   companions: Companion[];
   dayLength: DayLength;
   startTime: string;
+  endTime: string;
   travel: TravelPreference;
   variation?: number;
   avoidIds?: string[];
@@ -42,14 +43,12 @@ const budgets: Record<DayLength, number> = {
   "half-day": 360,
   "full-day": 660,
 };
-
 const targetCounts: Record<DayLength, number> = {
   short: 2,
   medium: 3,
   "half-day": 4,
   "full-day": 5,
 };
-
 const weatherCompatibility: Record<Weather, Weather[]> = {
   sunny: ["sunny", "dry", "warm", "any"],
   hot: ["hot", "sunny", "dry", "warm", "any"],
@@ -63,23 +62,64 @@ const weatherCompatibility: Record<Weather, Weather[]> = {
   any: ["any"],
 };
 
-function maxTravel(preference: TravelPreference): number {
-  return {
-    home: 0,
-    nearby: 10,
-    "20": 20,
-    "40": 40,
-    any: Number.POSITIVE_INFINITY,
-  }[preference];
+function isAtDomingo(activity: Activity): boolean {
+  return (
+    activity.source === "domingo" ||
+    activity.locationGroup === "Domingo" ||
+    activity.travelMinutes === 0
+  );
 }
 
-function isAtDomingo(activity: Activity): boolean {
-  return activity.locationGroup === "Domingo" || activity.travelMinutes === 0;
+function travelMatches(
+  activity: Activity,
+  preference: TravelPreference,
+): boolean {
+  const travel = activity.travelMinutes ?? Number.POSITIVE_INFINITY;
+  if (preference === "home") return isAtDomingo(activity);
+  if (preference === "20") return travel <= 20;
+  if (preference === "40") return travel <= 40;
+  if (preference === "far") {
+    return (
+      !isAtDomingo(activity) &&
+      travel >= 40 &&
+      activity.transport.some((item) => /машин|автомоб/i.test(item))
+    );
+  }
+  return true;
 }
 
 function isSafeForChildren(activity: Activity): boolean {
   const restriction = activity.ageRestrictions?.toLocaleLowerCase("ru") ?? "";
   return !/(^|\D)18\+|только взросл/.test(restriction);
+}
+
+function isIndoor(activity: Activity): boolean {
+  if (activity.id === "a-002") return true;
+  const value =
+    `${activity.title} ${activity.category} ${activity.description ?? ""}`.toLocaleLowerCase(
+      "ru",
+    );
+  return /ресторан|кафе|кофе|едаль|кухн|музей|галере|усадьб|экспозиц|аквапарк|спа|spa|саун|хаммам|баня|фурако|массаж|кино|настольн|чтени|книг|бокал вина|сиест|выспаться|мастер-класс|керамик|боулинг|батут|доставк/.test(
+    value,
+  );
+}
+
+function minutesFromTime(value: string): number {
+  const [hours = 10, minutes = 0] = value.split(":").map(Number);
+  return hours * 60 + minutes;
+}
+
+function timeWindowMatches(
+  activity: Activity,
+  preferences: PlannerPreferences,
+): boolean {
+  if (activity.timeOfDay.includes("any")) return true;
+  const start = minutesFromTime(preferences.startTime);
+  const end = minutesFromTime(preferences.endTime);
+  if (activity.timeOfDay.includes("morning") && start < 12 * 60) return true;
+  if (activity.timeOfDay.includes("day") && start < 18 * 60 && end > 12 * 60)
+    return true;
+  return activity.timeOfDay.includes("evening") && end > 18 * 60;
 }
 
 function hardFilter(
@@ -92,6 +132,20 @@ function hardFilter(
     !activity.durationMinutes
   )
     return false;
+  if (activity.id === "a-001") {
+    if (
+      preferences.dayLength !== "short" ||
+      !preferences.moods.includes("active")
+    )
+      return false;
+  }
+  if (activity.id === "a-health-trail-level-2") {
+    if (
+      preferences.dayLength !== "medium" ||
+      !preferences.moods.includes("active")
+    )
+      return false;
+  }
   if (
     !activity.seasons.includes("all") &&
     !activity.seasons.includes(preferences.season)
@@ -103,12 +157,9 @@ function hardFilter(
     )
   )
     return false;
-  if (
-    (activity.travelMinutes ?? Number.POSITIVE_INFINITY) >
-    maxTravel(preferences.travel)
-  )
-    return false;
-  if (preferences.travel === "home" && !isAtDomingo(activity)) return false;
+  if (!travelMatches(activity, preferences.travel)) return false;
+  if (preferences.weather === "rain" && !isIndoor(activity)) return false;
+  if (!timeWindowMatches(activity, preferences)) return false;
   if (
     preferences.companions.includes("children") &&
     !isSafeForChildren(activity)
@@ -139,20 +190,31 @@ function score(activity: Activity, preferences: PlannerPreferences): number {
   const companionMatches = activity.companions.filter((item) =>
     preferences.companions.includes(item),
   ).length;
-  const variety = hash(`${activity.id}:${preferences.variation ?? 0}`) * 3;
-  const avoidPenalty = preferences.avoidIds?.includes(activity.id) ? 14 : 0;
+  const variety = hash(`${activity.id}:${preferences.variation ?? 0}`) * 12;
+  const avoided = preferences.avoidIds?.includes(activity.id) ? 100 : 0;
   const bookingPenalty = activity.bookingRequirement === "required" ? 2 : 0;
   const priorityBonus = activity.priority
     ?.toLocaleLowerCase("ru")
     .includes("выс")
     ? 2
     : 0;
+  const hotBonus =
+    preferences.weather === "hot" &&
+    /пляж|загорать|шезлонг/i.test(activity.title)
+      ? 18
+      : 0;
+  const healthTrailBonus =
+    activity.id === "a-001" || activity.id === "a-health-trail-level-2"
+      ? 40
+      : 0;
   return (
     moodMatches * 6 +
     companionMatches * 4 +
     priorityBonus +
+    hotBonus +
+    healthTrailBonus +
     variety -
-    avoidPenalty -
+    avoided -
     bookingPenalty
   );
 }
@@ -161,27 +223,17 @@ function activityMinutes(activity: Activity): number {
   return activity.durationMinutes?.min ?? 0;
 }
 
-function routeMinutes(items: Activity[]): number {
-  let total = items.reduce((sum, item) => sum + activityMinutes(item), 0);
-  let group = "Domingo";
-  let lastTravel = 0;
-  for (const item of items) {
-    if (item.locationGroup !== group) {
-      total += item.travelMinutes ?? 0;
-      group = item.locationGroup;
-    }
-    lastTravel = item.travelMinutes ?? lastTravel;
-  }
-  if (group !== "Domingo") total += lastTravel;
-  return total;
-}
-
 function chooseExcursionGroup(
   activities: Activity[],
   preferences: PlannerPreferences,
 ): string | null {
   if (preferences.travel === "home") return null;
   const totals = new Map<string, number>();
+  const avoidedGroups = new Set(
+    activities
+      .filter((activity) => preferences.avoidIds?.includes(activity.id))
+      .map((activity) => activity.locationGroup),
+  );
   for (const activity of activities) {
     if (isAtDomingo(activity)) continue;
     totals.set(
@@ -189,7 +241,11 @@ function chooseExcursionGroup(
       (totals.get(activity.locationGroup) ?? 0) + score(activity, preferences),
     );
   }
-  return [...totals.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
+  const fresh = [...totals.entries()].filter(
+    ([group]) => !avoidedGroups.has(group),
+  );
+  const candidates = fresh.length ? fresh : [...totals.entries()];
+  return candidates.sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
 }
 
 function categoryFamily(activity: Activity): string {
@@ -200,7 +256,7 @@ function categoryFamily(activity: Activity): string {
   )
     return "food";
   if (/музей|истор|культур|усадьб/.test(value)) return "culture";
-  if (/spa|бан|фурако|восстанов/.test(value)) return "relax";
+  if (/spa|бан|фурако|восстанов|отдых/.test(value)) return "relax";
   if (/природ|маршрут|прогул|рыбал/.test(value)) return "nature";
   return activity.type;
 }
@@ -213,40 +269,33 @@ function topicKey(activity: Activity): string {
   const topics: [string, RegExp][] = [
     ["quad", /квадроцикл|питбайк|мото/],
     ["water", /sup|сап|катер|лодк|сплав/],
-    ["bike", /велосипед/],
-    ["walk", /прогул|тропа|маршрут|поход/],
+    ["bike", /велосипед|веломаршрут/],
+    ["run", /пробеж|беговой/],
+    ["walk", /прогул|тропа|пеший|поход/],
     ["museum", /музей|усадьб|экспозиц/],
     ["food", /ресторан|кафе|завтрак|обед|ужин|доставк|пикник|мангал/],
     ["bath", /баня|сауна|фурако|spa|спа|массаж/],
-    ["fishing", /рыбал/],
+    ["fishing", /рыбал|fishing/],
     ["creative", /мастер-класс|керамик|рисован|творч/],
   ];
   return topics.find(([, pattern]) => pattern.test(value))?.[0] ?? activity.id;
 }
 
 function orderForRoute(items: Activity[]): Activity[] {
+  const timeRank = (item: Activity) =>
+    item.timeOfDay.includes("morning")
+      ? 0
+      : item.timeOfDay.includes("evening")
+        ? 2
+        : 1;
   const home = items.filter(isAtDomingo);
   const away = items.filter((item) => !isAtDomingo(item));
-  const timeRank = (item: Activity) => {
-    if (item.timeOfDay.includes("morning")) return 0;
-    if (item.timeOfDay.includes("day")) return 1;
-    if (item.timeOfDay.includes("evening")) return 2;
-    return 1;
-  };
-  const morningHome = home
-    .filter((item) => timeRank(item) < 2)
-    .sort((a, b) => timeRank(a) - timeRank(b));
-  const eveningHome = home.filter((item) => timeRank(item) === 2);
   return [
-    ...morningHome,
+    ...home.filter((item) => timeRank(item) === 0),
+    ...home.filter((item) => timeRank(item) === 1),
     ...away.sort((a, b) => timeRank(a) - timeRank(b)),
-    ...eveningHome,
+    ...home.filter((item) => timeRank(item) === 2),
   ];
-}
-
-function minutesFromTime(value: string): number {
-  const [hours = 10, minutes = 0] = value.split(":").map(Number);
-  return hours * 60 + minutes;
 }
 
 function displayTime(total: number): string {
@@ -254,20 +303,79 @@ function displayTime(total: number): string {
   return `${String(Math.floor(normalized / 60)).padStart(2, "0")}:${String(normalized % 60).padStart(2, "0")}`;
 }
 
-function reasonFor(
+function alignToTimeOfDay(cursor: number, activity: Activity): number | null {
+  if (activity.timeOfDay.includes("any")) return cursor;
+  if (activity.timeOfDay.includes("morning") && cursor < 12 * 60) return cursor;
+  if (activity.timeOfDay.includes("day") && cursor < 18 * 60)
+    return Math.max(cursor, 12 * 60);
+  if (activity.timeOfDay.includes("evening")) return Math.max(cursor, 18 * 60);
+  return null;
+}
+
+interface ScheduledItem {
+  activity: Activity;
+  start: number;
+  end: number;
+  travelBeforeMinutes: number;
+}
+
+function schedule(
+  activities: Activity[],
+  preferences: PlannerPreferences,
+): { items: ScheduledItem[]; end: number; returnTravelMinutes: number } | null {
+  const start = minutesFromTime(preferences.startTime);
+  const requestedEnd = minutesFromTime(preferences.endTime);
+  const endLimit = Math.min(
+    requestedEnd,
+    start + budgets[preferences.dayLength],
+  );
+  if (requestedEnd <= start) return null;
+  let cursor = start;
+  let currentGroup = "Domingo";
+  let lastTravel = 0;
+  const items: ScheduledItem[] = [];
+  for (const activity of orderForRoute(activities)) {
+    const travelBeforeMinutes =
+      activity.locationGroup === currentGroup
+        ? 0
+        : (activity.travelMinutes ?? 0);
+    cursor += travelBeforeMinutes;
+    const aligned = alignToTimeOfDay(cursor, activity);
+    if (aligned === null) return null;
+    cursor = aligned;
+    const itemEnd = cursor + activityMinutes(activity);
+    if (itemEnd > endLimit) return null;
+    items.push({ activity, start: cursor, end: itemEnd, travelBeforeMinutes });
+    cursor = itemEnd;
+    currentGroup = activity.locationGroup;
+    lastTravel = activity.travelMinutes ?? lastTravel;
+  }
+  const returnTravelMinutes = currentGroup === "Domingo" ? 0 : lastTravel;
+  cursor += returnTravelMinutes;
+  if (cursor > endLimit) return null;
+  return { items, end: cursor, returnTravelMinutes };
+}
+
+function reasonCandidates(
   activity: Activity,
   preferences: PlannerPreferences,
-): string {
+): string[] {
+  const values: string[] = [];
   if (preferences.weather === "rain")
-    return "Хорошо подходит для дождливого дня";
+    values.push("Хорошо подходит для дождливого дня");
   if (preferences.companions.includes("children"))
-    return "Хороший вариант с детьми";
-  if (activity.timeOfDay.includes("evening")) return "Особенно приятно вечером";
+    values.push("Хороший вариант с детьми");
+  if (activity.timeOfDay.includes("evening"))
+    values.push("Особенно приятно вечером");
   if (!isAtDomingo(activity))
-    return `Логично совместить с поездкой в ${activity.locationGroup}`;
+    values.push(`Логично совместить с поездкой в ${activity.locationGroup}`);
   if (activity.moods.some((mood) => preferences.moods.includes(mood)))
-    return "Совпадает с вашим настроением";
-  return "Дополняет день без лишней спешки";
+    values.push("Совпадает с вашим настроением");
+  values.push(
+    `Подходит для формата «${activity.category}»`,
+    "Дополняет день без лишней спешки",
+  );
+  return values;
 }
 
 export function buildDayPlan(
@@ -288,58 +396,58 @@ export function buildDayPlan(
   const selected: Activity[] = [];
   const families = new Map<string, number>();
   const topics = new Set<string>();
-  const limit = budgets[preferences.dayLength];
-
-  for (const activity of ranked) {
-    const family = categoryFamily(activity);
-    const topic = topicKey(activity);
-    if (topics.has(topic)) continue;
-    const diversityPenalty = (families.get(family) ?? 0) * 5;
-    if (
-      diversityPenalty > score(activity, preferences) &&
-      ranked.length > targetCounts[preferences.dayLength]
-    )
-      continue;
-    const attempt = orderForRoute([...selected, activity]);
-    if (routeMinutes(attempt) <= limit) {
-      selected.push(activity);
-      families.set(family, (families.get(family) ?? 0) + 1);
-      topics.add(topic);
+  const desiredCount = targetCounts[preferences.dayLength];
+  const fresh = ranked.filter(
+    (activity) => !preferences.avoidIds?.includes(activity.id),
+  );
+  const passes = fresh.length ? [fresh, ranked] : [ranked];
+  for (const candidates of passes) {
+    for (const activity of candidates) {
+      if (selected.includes(activity)) continue;
+      const family = categoryFamily(activity);
+      const topic = topicKey(activity);
+      if (topics.has(topic)) continue;
+      const diversityPenalty = (families.get(family) ?? 0) * 5;
+      if (
+        diversityPenalty > score(activity, preferences) &&
+        ranked.length > desiredCount
+      )
+        continue;
+      if (schedule([...selected, activity], preferences)) {
+        selected.push(activity);
+        families.set(family, (families.get(family) ?? 0) + 1);
+        topics.add(topic);
+      }
+      if (selected.length >= desiredCount) break;
     }
-    if (selected.length >= targetCounts[preferences.dayLength]) break;
+    if (selected.length >= desiredCount) break;
   }
-
-  const ordered = orderForRoute(selected);
-  let cursor = minutesFromTime(preferences.startTime);
-  let currentGroup = "Domingo";
-  let lastTravel = 0;
-  const items = ordered.map((activity) => {
-    const travelBeforeMinutes =
-      activity.locationGroup === currentGroup
-        ? 0
-        : (activity.travelMinutes ?? 0);
-    cursor += travelBeforeMinutes;
-    const startTime = displayTime(cursor);
-    cursor += activityMinutes(activity);
-    currentGroup = activity.locationGroup;
-    lastTravel = activity.travelMinutes ?? lastTravel;
-    return {
-      activity,
-      startTime,
-      endTime: displayTime(cursor),
-      travelBeforeMinutes,
-      reason: reasonFor(activity, preferences),
-    };
-  });
-  const returnTravelMinutes = currentGroup === "Domingo" ? 0 : lastTravel;
-  cursor += returnTravelMinutes;
+  const scheduled = schedule(selected, preferences);
+  const reasonCounts = new Map<string, number>();
+  const items =
+    scheduled?.items.map(({ activity, start, end, travelBeforeMinutes }) => {
+      const reason =
+        reasonCandidates(activity, preferences).find(
+          (candidate) => (reasonCounts.get(candidate) ?? 0) < 2,
+        ) ?? `Подходит для «${activity.title}»`;
+      reasonCounts.set(reason, (reasonCounts.get(reason) ?? 0) + 1);
+      return {
+        activity,
+        startTime: displayTime(start),
+        endTime: displayTime(end),
+        travelBeforeMinutes,
+        reason,
+      };
+    }) ?? [];
   const exactMoodMatch = items.some(({ activity }) =>
     activity.moods.some((mood) => preferences.moods.includes(mood)),
   );
   return {
     items,
-    endTime: displayTime(cursor),
-    returnTravelMinutes,
+    endTime: displayTime(
+      scheduled?.end ?? minutesFromTime(preferences.startTime),
+    ),
+    returnTravelMinutes: scheduled?.returnTravelMinutes ?? 0,
     relaxed: preferences.moods.length > 0 && !exactMoodMatch,
   };
 }

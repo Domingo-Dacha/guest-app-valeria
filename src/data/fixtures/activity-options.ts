@@ -15,11 +15,9 @@ export const ACTIVITY_OPTIONS = {
   weather: [
     { value: "sunny", label: "Солнечно" },
     { value: "hot", label: "Жарко" },
-    { value: "cloudy", label: "Облачно" },
     { value: "cool", label: "Прохладно" },
     { value: "rain", label: "Дождь" },
     { value: "snow", label: "Снег" },
-    { value: "frost", label: "Мороз" },
   ] satisfies { value: Weather; label: string }[],
   moods: [
     { value: "calm", label: "Спокойно" },
@@ -28,8 +26,6 @@ export const ACTIVITY_OPTIONS = {
     { value: "nature", label: "На природе" },
     { value: "food", label: "Вкусно" },
     { value: "learn", label: "Узнать новое" },
-    { value: "beautiful", label: "Красивые места" },
-    { value: "creative", label: "Творчески" },
     { value: "romantic", label: "Романтично" },
     { value: "special", label: "Особенный день" },
   ] satisfies { value: Mood; label: string }[],
