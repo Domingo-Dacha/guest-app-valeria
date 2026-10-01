@@ -96,9 +96,7 @@ describe("leisure day planner", () => {
     expect(
       result.items.every(
         ({ activity }) =>
-          activity.source === "domingo" ||
-          activity.locationGroup === "Domingo" ||
-          activity.travelMinutes === 0,
+          activity.locationGroup === "Domingo" && activity.travelMinutes === 0,
       ),
     ).toBe(true);
   });
@@ -302,6 +300,91 @@ describe("leisure day planner", () => {
       title: "Кинотеатр «Корстон»",
       phone: "+7 (4967) 39-16-39",
     });
+  });
+
+  it("removes the Gavshino bath and generic bicycle rides", () => {
+    for (const id of ["dd-009", "dd-013"]) {
+      expect(
+        activityFixture.find((activity) => activity.id === id),
+      ).toMatchObject({
+        status: "disabled",
+        isSelectable: false,
+      });
+    }
+  });
+
+  it("does not offer farms or museums with pets", () => {
+    const restricted = activityFixture.filter((activity) =>
+      /ферм|музей/i.test(
+        `${activity.title} ${activity.category} ${activity.description ?? ""}`,
+      ),
+    );
+    for (const activity of restricted) {
+      const result = buildDayPlan([activity], {
+        ...basePreferences,
+        companions: ["pet"],
+        travel: "any",
+      });
+      expect(result.items, activity.title).toHaveLength(0);
+    }
+  });
+
+  it("keeps wine away from children and teenagers", () => {
+    const wine = activityFixture.find((activity) => activity.id === "dd-wine")!;
+    for (const companion of ["children", "teens"] as const) {
+      const result = buildDayPlan([wine], {
+        ...basePreferences,
+        companions: [companion],
+        travel: "home",
+        startTime: "18:00",
+        endTime: "20:00",
+      });
+      expect(result.items, companion).toHaveLength(0);
+    }
+  });
+
+  it("allows the morning run with every companion type", () => {
+    const run = activityFixture.find((activity) => activity.id === "a-002")!;
+    expect(run.companions).toEqual([
+      "solo",
+      "couple",
+      "children",
+      "friends",
+      "teens",
+      "pet",
+    ]);
+  });
+
+  it("does not call bike routes, temples, museums, or parks especially pleasant in the evening", () => {
+    const activities = ["a-003", "g-043", "g-045", "g-033"].map((id) =>
+      activityFixture.find((activity) => activity.id === id)!,
+    );
+    for (const activity of activities) {
+      const result = buildDayPlan(
+        [
+          {
+            ...activity,
+            timeOfDay: ["evening"],
+            seasons: ["all"],
+            weather: ["any"],
+            locationGroup: "Domingo",
+            travelMinutes: 0,
+            durationMinutes: { min: 60, max: 120 },
+          },
+        ],
+        {
+          ...basePreferences,
+          companions: ["solo"],
+          travel: "any",
+          startTime: "18:00",
+          endTime: "20:00",
+        },
+      );
+      expect(result.items, activity.title).toHaveLength(1);
+      expect(result.items[0]?.reason, activity.title).not.toBe(
+        "Особенно приятно вечером",
+      );
+    }
   });
 
   it("splits games and movies and keeps new calm activities in their time slots", () => {

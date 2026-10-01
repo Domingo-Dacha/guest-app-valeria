@@ -12,6 +12,8 @@ export const ACTIVITY_PATCHES: Record<string, ActivityPatch> = {
   "dd-015": { status: "disabled", isSelectable: false },
   "dd-016": { status: "disabled", isSelectable: false },
   "dd-018": { status: "disabled", isSelectable: false },
+  "dd-009": { status: "disabled", isSelectable: false },
+  "dd-013": { status: "disabled", isSelectable: false },
   "a-001": {
     title: "Тропа здоровья — 1-й лайт уровень",
     description: "Лёгкий кольцевой маршрут для активной прогулки на 1–2 часа",
@@ -23,6 +25,7 @@ export const ACTIVITY_PATCHES: Record<string, ActivityPatch> = {
     seasons: ["all"],
     weather: ["any"],
     timeOfDay: ["morning"],
+    companions: ["solo", "couple", "children", "friends", "teens", "pet"],
     imageAsset: "/activity-maps/running-route.webp",
   },
   "a-003": { imageAsset: "/activity-maps/bike-route.webp" },

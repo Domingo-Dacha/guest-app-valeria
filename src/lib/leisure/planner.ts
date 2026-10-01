@@ -65,12 +65,16 @@ function isAtDomingo(activity: Activity): boolean {
   );
 }
 
+function isOnDomingoProperty(activity: Activity): boolean {
+  return activity.locationGroup === "Domingo" && activity.travelMinutes === 0;
+}
+
 function travelMatches(
   activity: Activity,
   preference: TravelPreference,
 ): boolean {
   const travel = activity.travelMinutes ?? Number.POSITIVE_INFINITY;
-  if (preference === "home") return isAtDomingo(activity);
+  if (preference === "home") return isOnDomingoProperty(activity);
   if (preference === "20") return travel <= 20;
   if (preference === "40") return travel <= 40;
   if (preference === "far") {
@@ -82,6 +86,22 @@ function travelMatches(
 function isSafeForChildren(activity: Activity): boolean {
   const restriction = activity.ageRestrictions?.toLocaleLowerCase("ru") ?? "";
   return !/(^|\D)18\+|только взросл/.test(restriction);
+}
+
+function isUnavailableWithPets(activity: Activity): boolean {
+  const value =
+    `${activity.title} ${activity.category} ${activity.description ?? ""}`.toLocaleLowerCase(
+      "ru",
+    );
+  return /ферм|музей/.test(value);
+}
+
+function avoidsEveningCompliment(activity: Activity): boolean {
+  const value =
+    `${activity.title} ${activity.category} ${activity.description ?? ""}`.toLocaleLowerCase(
+      "ru",
+    );
+  return /веломаршрут|храм|музей|парк/.test(value);
 }
 
 function isIndoor(activity: Activity): boolean {
@@ -152,9 +172,12 @@ function hardFilter(
   if (preferences.weather === "rain" && !isIndoor(activity)) return false;
   if (!timeWindowMatches(activity, preferences)) return false;
   if (
-    preferences.companions.includes("children") &&
+    (preferences.companions.includes("children") ||
+      preferences.companions.includes("teens")) &&
     !isSafeForChildren(activity)
   )
+    return false;
+  if (preferences.companions.includes("pet") && isUnavailableWithPets(activity))
     return false;
   return true;
 }
@@ -401,7 +424,10 @@ function reasonCandidates(
     values.push("Хорошо подходит для дождливого дня");
   if (preferences.companions.includes("children"))
     values.push("Хороший вариант с детьми");
-  if (activity.timeOfDay.includes("evening"))
+  if (
+    activity.timeOfDay.includes("evening") &&
+    !avoidsEveningCompliment(activity)
+  )
     values.push("Особенно приятно вечером");
   if (!isAtDomingo(activity))
     values.push(`Логично совместить с поездкой в ${activity.locationGroup}`);
