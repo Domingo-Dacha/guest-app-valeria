@@ -616,7 +616,7 @@ input:disabled {
   border-radius: 32px;
   background:
     linear-gradient(180deg, transparent 48%, rgb(4 37 31 / 68%)),
-    url("/houses/river-house.jpg") center / cover;
+    url("/leisure/domingo-lakeside-hero.webp") center / cover;
   box-shadow: var(--shadow);
   padding: 26px;
 }
