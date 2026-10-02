@@ -32,7 +32,7 @@ test("builds a realistic day and keeps the layout inside the viewport", async ({
 }) => {
   await page.goto("/leisure");
   await expect(
-    page.getByRole("heading", { name: "Ваш день в Domingo" }).first(),
+    page.getByRole("heading", { name: "День в ритме Domingo" }),
   ).toBeVisible();
   await expect(page.locator(".leisure-hero__image")).toHaveCSS(
     "background-image",

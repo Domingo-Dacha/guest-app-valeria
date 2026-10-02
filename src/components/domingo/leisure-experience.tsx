@@ -685,7 +685,7 @@ export function LeisureExperience({
       <section className="leisure-hero">
         <div className="leisure-hero__copy">
           <p className="eyebrow">Domingo рядом</p>
-          <h1>Ваш день в Domingo</h1>
+          <h1>День в ритме Domingo</h1>
           <p>
             Останьтесь на даче, отправляйтесь исследовать окрестности или
             доверьте нам собрать день под ваше настроение.
