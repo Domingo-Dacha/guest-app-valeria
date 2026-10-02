@@ -67,7 +67,7 @@ test("builds a realistic day and keeps the layout inside the viewport", async ({
 
 test("opens a catalog activity detail card", async ({ page }) => {
   await page.goto("/leisure");
-  await page.getByRole("button", { name: /В Domingo/ }).click();
+  await page.getByRole("button", { name: "На даче" }).click();
   await page.locator(".activity-card").first().click();
   await expect(page.getByRole("dialog")).toBeVisible();
   await expect(page.getByText("Телефон", { exact: true })).toBeVisible();
@@ -132,7 +132,7 @@ test("shows the supplied map in each matching route card and dialog", async ({
   page,
 }) => {
   await page.goto("/leisure");
-  await page.getByRole("button", { name: /В Domingo/ }).click();
+  await page.getByRole("button", { name: "На даче" }).click();
 
   for (const title of [
     "Веломаршрут",
