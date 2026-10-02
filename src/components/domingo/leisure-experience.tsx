@@ -695,15 +695,13 @@ export function LeisureExperience({
           className="leisure-hero__image"
           role="img"
           aria-label="Завтрак на террасе у озера среди сосен"
-        >
-          <span>Ваш день начинается здесь</span>
-        </div>
+        />
       </section>
       <nav className="leisure-tabs" aria-label="Разделы отдыха">
         {(
           [
-            ["domingo", House, "В Domingo"],
-            ["guide", Bike, "Гид"],
+            ["domingo", House, "На даче"],
+            ["guide", Bike, "Рядом"],
             ["planner", Sparkles, "Подобрать"],
           ] as const
         ).map(([value, Icon, label]) => (

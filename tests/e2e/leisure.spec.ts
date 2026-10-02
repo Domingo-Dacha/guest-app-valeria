@@ -38,6 +38,14 @@ test("builds a realistic day and keeps the layout inside the viewport", async ({
     "background-image",
     /domingo-lakeside-hero\.webp/,
   );
+  await expect(
+    page.locator(".leisure-hero__image").getByText("Ваш день начинается здесь"),
+  ).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "На даче" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Рядом" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Подобрать" })).toHaveClass(
+    /is-active/,
+  );
   await page.getByRole("button", { name: "Лето" }).click();
   await page.getByRole("button", { name: "Солнечно" }).click();
   await page.getByRole("button", { name: "Активно" }).click();
