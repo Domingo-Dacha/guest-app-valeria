@@ -394,10 +394,7 @@ function Planner({
       <div className="leisure-panel__intro">
         <p className="eyebrow">Несколько ответов — готовый день</p>
         <h2 id="planner-title">Подобрать мой отдых</h2>
-        <p>
-          Учтём погоду, компанию, дорогу и темп. Получится расписание, а не
-          список ссылок.
-        </p>
+        <p>Учтём погоду, компанию, дорогу и темп.</p>
       </div>
       <div className="planner-form">
         <ChoiceGroup
