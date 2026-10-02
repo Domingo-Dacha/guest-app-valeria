@@ -32,11 +32,19 @@ test("builds a realistic day and keeps the layout inside the viewport", async ({
 }) => {
   await page.goto("/leisure");
   await expect(
-    page.getByRole("heading", { name: "Ваш день в Domingo" }).first(),
+    page.getByRole("heading", { name: "День в ритме Domingo" }),
   ).toBeVisible();
   await expect(page.locator(".leisure-hero__image")).toHaveCSS(
     "background-image",
     /domingo-lakeside-hero\.webp/,
+  );
+  await expect(
+    page.locator(".leisure-hero__image").getByText("Ваш день начинается здесь"),
+  ).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "На даче" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Рядом" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Подобрать" })).toHaveClass(
+    /is-active/,
   );
   await page.getByRole("button", { name: "Лето" }).click();
   await page.getByRole("button", { name: "Солнечно" }).click();
@@ -59,7 +67,7 @@ test("builds a realistic day and keeps the layout inside the viewport", async ({
 
 test("opens a catalog activity detail card", async ({ page }) => {
   await page.goto("/leisure");
-  await page.getByRole("button", { name: /В Domingo/ }).click();
+  await page.getByRole("button", { name: "На даче" }).click();
   await page.locator(".activity-card").first().click();
   await expect(page.getByRole("dialog")).toBeVisible();
   await expect(page.getByText("Телефон", { exact: true })).toBeVisible();
@@ -124,7 +132,7 @@ test("shows the supplied map in each matching route card and dialog", async ({
   page,
 }) => {
   await page.goto("/leisure");
-  await page.getByRole("button", { name: /В Domingo/ }).click();
+  await page.getByRole("button", { name: "На даче" }).click();
 
   for (const title of [
     "Веломаршрут",

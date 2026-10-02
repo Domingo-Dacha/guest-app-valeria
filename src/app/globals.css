@@ -103,11 +103,12 @@ h3 {
   display: flex;
   gap: 8px;
   color: var(--text-muted);
-  font-size: 0.9rem;
-  font-weight: 700;
+  font-size: 0.78rem;
+  font-weight: 600;
+  opacity: 0.76;
 }
 .topbar nav a {
-  padding: 10px 12px;
+  padding: 8px 10px;
   border-radius: 999px;
 }
 .topbar nav a:hover {
@@ -609,22 +610,10 @@ input:disabled {
   line-height: 1.6;
 }
 .leisure-hero__image {
-  display: flex;
   min-height: clamp(300px, 42vw, 520px);
-  align-items: end;
-  justify-content: end;
   border-radius: 32px;
-  background:
-    linear-gradient(180deg, transparent 48%, rgb(4 37 31 / 68%)),
-    url("/leisure/domingo-lakeside-hero.webp") center / cover;
+  background: url("/leisure/domingo-lakeside-hero.webp") center / cover no-repeat;
   box-shadow: var(--shadow);
-  padding: 26px;
-}
-.leisure-hero__image span {
-  color: white;
-  font-size: 0.82rem;
-  font-weight: 800;
-  letter-spacing: 0.04em;
 }
 .leisure-tabs {
   position: sticky;
@@ -1074,15 +1063,17 @@ input:disabled {
   }
   .leisure-hero {
     grid-template-columns: 1fr;
-    padding-top: 30px;
+    gap: 18px;
+    padding: 24px 0 18px;
   }
   .leisure-hero__image {
-    min-height: 270px;
+    min-height: 240px;
     border-radius: 24px;
   }
   .leisure-tabs {
     position: static;
     top: 8px;
+    margin-top: 10px;
     margin-bottom: 38px;
   }
   .leisure-tabs button {

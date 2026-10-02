@@ -685,7 +685,7 @@ export function LeisureExperience({
       <section className="leisure-hero">
         <div className="leisure-hero__copy">
           <p className="eyebrow">Domingo рядом</p>
-          <h1>Ваш день в Domingo</h1>
+          <h1>День в ритме Domingo</h1>
           <p>
             Останьтесь на даче, отправляйтесь исследовать окрестности или
             доверьте нам собрать день под ваше настроение.
@@ -695,15 +695,13 @@ export function LeisureExperience({
           className="leisure-hero__image"
           role="img"
           aria-label="Завтрак на террасе у озера среди сосен"
-        >
-          <span>Ваш день начинается здесь</span>
-        </div>
+        />
       </section>
       <nav className="leisure-tabs" aria-label="Разделы отдыха">
         {(
           [
-            ["domingo", House, "В Domingo"],
-            ["guide", Bike, "Гид"],
+            ["domingo", House, "На даче"],
+            ["guide", Bike, "Рядом"],
             ["planner", Sparkles, "Подобрать"],
           ] as const
         ).map(([value, Icon, label]) => (
