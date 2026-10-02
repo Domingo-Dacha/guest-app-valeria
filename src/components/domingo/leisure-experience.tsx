@@ -694,7 +694,7 @@ export function LeisureExperience({
         <div
           className="leisure-hero__image"
           role="img"
-          aria-label="Дом Domingo среди сосен"
+          aria-label="Завтрак на террасе у озера среди сосен"
         >
           <span>Ваш день начинается здесь</span>
         </div>
